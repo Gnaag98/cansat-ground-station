@@ -3,6 +3,7 @@ import json
 from struct import unpack
 import sys
 from datetime import datetime
+import time
 
 import serial as pyserial
 
@@ -42,23 +43,30 @@ def greet(serial: pyserial.Serial):
 
 
 def listen(serial: pyserial.Serial):
-    is_waiting = True
-    now = datetime.today()
-    filename = now.strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+    is_receiving = False
+    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
 
     samples = []
 
+    max_wait_seconds = 1e-3
+    start_time: float
+
     while True:
-        while is_waiting:
+        while not is_receiving:
             if serial.in_waiting > 0:
                 byte = serial.read()
                 if chr(byte[0]) == '0':
                     print('Message incoming: ', end='')
-                    is_waiting = False
+                    is_receiving = True
+                    start_time = time.perf_counter()
                 else:
                     print(chr(byte[0]), end='')
 
-        while not is_waiting:
+        while is_receiving:
+            if time.perf_counter() - start_time > max_wait_seconds:
+                is_receiving = False
+                continue
+
             if serial.in_waiting >= 30:
                 bytes = serial.read(30)
                 data = deserialize(bytes)
@@ -71,7 +79,7 @@ def listen(serial: pyserial.Serial):
                 with open(filename, 'w') as file:
                     json.dump(samples, file, indent=4)
 
-                is_waiting = True
+                is_receiving = False
 
 
 def main():
