@@ -38,48 +38,31 @@ def deserialize(serialized: bytes):
     return Data(acceleration, *remaining_variables)
 
 
-def greet(serial: pyserial.Serial):
+def respond(serial: pyserial.Serial):
     serial.write('Thank you for the data\n'.encode())
 
 
-def listen(serial: pyserial.Serial):
-    is_receiving = False
-    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
-
-    samples = []
-
+def receive(serial: pyserial.Serial) -> Data:
     max_wait_seconds = 1e-3
     start_time: float
 
     while True:
-        while not is_receiving:
+        byte = 0
+
+        while chr(byte) != '0':
             if serial.in_waiting > 0:
-                byte = serial.read()
-                if chr(byte[0]) == '0':
+                byte = serial.read()[0]
+                if chr(byte) == '0':
                     print('Message incoming: ', end='')
-                    is_receiving = True
                     start_time = time.perf_counter()
                 else:
-                    print(chr(byte[0]), end='')
+                    print(chr(byte), end='')
 
-        while is_receiving:
-            if time.perf_counter() - start_time > max_wait_seconds:
-                is_receiving = False
-                continue
-
+        while time.perf_counter() - start_time < max_wait_seconds:
             if serial.in_waiting >= 30:
-                bytes = serial.read(30)
-                data = deserialize(bytes)
-                print(data)
-
-                greet(serial)
-
-                samples.append(asdict(data))
-
-                with open(filename, 'w') as file:
-                    json.dump(samples, file, indent=4)
-
-                is_receiving = False
+                serialized = serial.read(30)
+                data = deserialize(serialized)
+                return data
 
 
 def main():
@@ -93,8 +76,24 @@ def main():
     except ValueError:
         print("Invalid COM Port")
     
-    with pyserial.Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
-        listen(serial)
+    try:
+        with pyserial.Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
+            filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+
+            samples = []
+
+            while True:
+                data = receive(serial)
+
+                print(data)
+                respond(serial)
+
+                samples.append(asdict(data))
+
+                with open(filename, 'w') as file:
+                    json.dump(samples, file, indent=4)
+    except KeyboardInterrupt:
+        print('Bye')
 
 
 if __name__ == '__main__':
