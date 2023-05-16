@@ -73,8 +73,7 @@ def main():
         com_port = sys.argv[1]
     except IndexError:
         print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
-    except ValueError:
-        print("Invalid COM Port")
+        return
     
     try:
         with pyserial.Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
@@ -92,6 +91,9 @@ def main():
 
                 with open(filename, 'w') as file:
                     json.dump(samples, file, indent=4)
+    except pyserial.SerialException:
+        print("Invalid COM Port")
+        return
     except KeyboardInterrupt:
         print('Bye')
 
