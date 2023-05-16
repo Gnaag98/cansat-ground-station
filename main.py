@@ -1,6 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+import json
 from struct import unpack
 import sys
+from datetime import datetime
 
 import serial as pyserial
 
@@ -41,6 +43,10 @@ def greet(serial: pyserial.Serial):
 
 def listen(serial: pyserial.Serial):
     is_waiting = True
+    now = datetime.today()
+    filename = now.strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+
+    samples = []
 
     while True:
         while is_waiting:
@@ -60,8 +66,10 @@ def listen(serial: pyserial.Serial):
 
                 greet(serial)
 
-                with open('timestamps.txt', 'a') as file:
-                    file.write(f'Timestamp: {data.time}\n')
+                samples.append(asdict(data))
+
+                with open(filename, 'w') as file:
+                    json.dump(samples, file, indent=4)
 
                 is_waiting = True
 
