@@ -1,11 +1,13 @@
 from dataclasses import dataclass, asdict
 import json
+import os
 from struct import unpack
 import sys
 from datetime import datetime
 import time
 
 import serial as pyserial
+import asyncio
 
 
 @dataclass
@@ -65,16 +67,7 @@ def receive(serial: pyserial.Serial) -> Data:
                 return data
 
 
-def main():
-    baud_rate = 115200
-    com_port: int = None
-
-    try:
-        com_port = sys.argv[1]
-    except IndexError:
-        print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
-        return
-    
+def serial_work(com_port: str, baud_rate: int):
     try:
         with pyserial.Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
             filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
@@ -94,9 +87,47 @@ def main():
     except pyserial.SerialException:
         print("Invalid COM Port")
         return
-    except KeyboardInterrupt:
-        print('Bye')
+
+
+async def infinite_print():
+    while True:
+        await asyncio.sleep(1)
+        print('Hello')
+
+
+async def in_thread(function):
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, function)
+
+
+async def main():
+    baud_rate = 115200
+    com_port: int = None
+
+    try:
+        com_port = sys.argv[1]
+    except IndexError:
+        print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
+        return
+    
+
+    def serial_wrapped():
+        serial_work(com_port, baud_rate)
+    
+
+    async with asyncio.TaskGroup() as task_group:
+        task1 = task_group.create_task(
+            in_thread(serial_wrapped)
+        )
+
+        task2 = task_group.create_task(
+            infinite_print()
+        )
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print('Bye')
+        os._exit(1)
