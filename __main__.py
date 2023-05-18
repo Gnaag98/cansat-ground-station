@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from enum import Enum, IntEnum, auto
+from functools import partial
 import json
 import os
 from struct import unpack
@@ -166,6 +167,25 @@ async def try_receive_websocket(websocket: WebSocketServerProtocol):
         pass
 
 
+async def loop(websocket: WebSocketServerProtocol, serial: Serial):
+    # Code here will run when a websocket client connects.
+    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+
+    while True:
+        await try_receive_websocket(websocket)
+
+        if serial_state == SerialState.RECEIVING_DATA:
+            data = try_receive_data(serial)
+            if data:
+                process_data(data, filename, serial)
+        elif serial_state == SerialState.RECEIVING_TEXT:
+            text = try_receive_text(serial)
+            if text:
+                print(text)
+        else:
+            try_receive_header(serial)
+
+
 async def main():
     baud_rate = 115200
     com_port: int = None
@@ -178,25 +198,7 @@ async def main():
 
     try:
         with Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
-            async def websocket_handler(websocket: WebSocketServerProtocol):
-                # Code here will run when a websocket client connects.
-                filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
-
-                while True:
-                    await try_receive_websocket(websocket)
-
-                    if serial_state == SerialState.RECEIVING_DATA:
-                        data = try_receive_data(serial)
-                        if data:
-                            process_data(data, filename, serial)
-                    elif serial_state == SerialState.RECEIVING_TEXT:
-                        text = try_receive_text(serial)
-                        if text:
-                            print(text)
-                    else:
-                        try_receive_header(serial)
-
-            async with serve(websocket_handler, 'localhost', 8765):
+            async with serve(partial(loop, serial=serial), 'localhost', 8765):
                 await asyncio.Future()
     except SerialException:
         print("Invalid COM Port")
