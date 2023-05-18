@@ -130,9 +130,8 @@ async def main():
         return
 
 
-if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print('Bye')
-        os._exit(0)
+try:
+    asyncio.run(main())
+except KeyboardInterrupt:
+    print('Bye')
+    os._exit(0)
