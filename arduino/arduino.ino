@@ -40,7 +40,11 @@ void loop() {
 
     auto serialized = reinterpret_cast<const char *>(&data);
 
-    Serial.print('0'); // Signals the start of the message.
+    // Signal the start of the message.
+    Serial.print('0');
+    Serial.print('1');
+
+    // Send the actual data.
     for (int i = 0; i < sizeof(data); ++i) {
       Serial.print(serialized[i]);
     }

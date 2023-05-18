@@ -85,7 +85,6 @@ async def main():
     except IndexError:
         print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
         return
-    
 
     try:
         with Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
@@ -95,33 +94,34 @@ async def main():
 
                 max_wait_seconds = 1e-3
                 start_time: float
-                is_receiving_serial = False
+                start_bytes_received = 0
 
                 while True:
-                    if is_receiving_serial:
+                    if start_bytes_received == 2:
                         if time.perf_counter() - start_time > max_wait_seconds:
                             print('Timeout reached')
-                            is_receiving_serial = False
+                            start_bytes_received = 0
                             continue
 
                         data = receive(serial)
                         if data:
                             process_data(data, filename, serial)
-                            is_receiving_serial = False
+                            start_bytes_received = 0
                     else:
                         if serial.in_waiting > 0:
                             byte = serial.read()[0]
-                            if (chr(byte) == '0'):
+                            if (chr(byte) == '0' and start_bytes_received == 0):
+                                start_bytes_received = 1
+                            elif (chr(byte) == '1' and start_bytes_received == 1):
+                                start_bytes_received = 2
                                 print('Message incoming: ', end='')
                                 start_time = time.perf_counter()
-                                is_receiving_serial = True
                             else:
                                 print(chr(byte), end='', flush=True)
+                                start_bytes_received = 0
                         
                         await try_receive_websocket(websocket)
-                
 
-                    
 
             async with serve(websocket_handler, 'localhost', 8765):
                 await asyncio.Future()
