@@ -8,6 +8,7 @@ import time
 
 import serial as pyserial
 import asyncio
+from websockets.server import serve, WebSocketServerProtocol
 
 
 @dataclass
@@ -89,15 +90,10 @@ def serial_work(com_port: str, baud_rate: int):
         return
 
 
-async def infinite_print():
-    while True:
-        await asyncio.sleep(1)
-        print('Hello')
-
-
-async def in_thread(function):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, function)
+async def echo(websocket: WebSocketServerProtocol):
+    async for message in websocket:
+        print(message)
+        await websocket.send(message)
 
 
 async def main():
@@ -110,19 +106,9 @@ async def main():
         print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
         return
     
-
-    def serial_wrapped():
-        serial_work(com_port, baud_rate)
-    
-
-    async with asyncio.TaskGroup() as task_group:
-        task1 = task_group.create_task(
-            in_thread(serial_wrapped)
-        )
-
-        task2 = task_group.create_task(
-            infinite_print()
-        )
+    async with serve(echo, 'localhost', 8765):
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda : serial_work(com_port, baud_rate))
 
 
 if __name__ == '__main__':
