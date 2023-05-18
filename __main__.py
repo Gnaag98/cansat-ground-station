@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 import time
 
-import serial as pyserial
+from serial import Serial, SerialException
 import asyncio
 from websockets.server import serve, WebSocketServerProtocol
 
@@ -32,6 +32,9 @@ class Data:
     DHT11_hum_outside: int
 
 
+samples = []
+
+
 def deserialize(serialized: bytes):
     deserialized = unpack('<fffLfhhhBBBB', serialized)
 
@@ -41,59 +44,36 @@ def deserialize(serialized: bytes):
     return Data(acceleration, *remaining_variables)
 
 
-def respond(serial: pyserial.Serial):
+def respond(serial: Serial):
     serial.write('Thank you for the data\n'.encode())
 
 
-def receive(serial: pyserial.Serial) -> Data:
-    max_wait_seconds = 1e-3
-    start_time: float
-
-    while True:
-        byte = 0
-
-        while chr(byte) != '0':
-            if serial.in_waiting > 0:
-                byte = serial.read()[0]
-                if chr(byte) == '0':
-                    print('Message incoming: ', end='')
-                    start_time = time.perf_counter()
-                else:
-                    print(chr(byte), end='')
-
-        while time.perf_counter() - start_time < max_wait_seconds:
-            if serial.in_waiting >= 30:
-                serialized = serial.read(30)
-                data = deserialize(serialized)
-                return data
+def receive(serial: Serial) -> Data | None:
+    if serial.in_waiting >= 30:
+        serialized = serial.read(30)
+        data = deserialize(serialized)
+        return data
+    else:
+        return None
 
 
-def serial_work(com_port: str, baud_rate: int):
+def process_data(data: Data, filename: str, serial: Serial):
+    print(data)
+    respond(serial)
+
+    samples.append(asdict(data))
+
+    with open(filename, 'w') as file:
+        json.dump(samples, file, indent=4)
+
+
+async def try_receive_websocket(websocket: WebSocketServerProtocol):
     try:
-        with pyserial.Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
-            filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
-
-            samples = []
-
-            while True:
-                data = receive(serial)
-
-                print(data)
-                respond(serial)
-
-                samples.append(asdict(data))
-
-                with open(filename, 'w') as file:
-                    json.dump(samples, file, indent=4)
-    except pyserial.SerialException:
-        print("Invalid COM Port")
-        return
-
-
-async def echo(websocket: WebSocketServerProtocol):
-    async for message in websocket:
-        print(message)
-        await websocket.send(message)
+        async with asyncio.timeout(0):
+            message = await websocket.recv()
+            print(message)
+    except TimeoutError:
+        pass
 
 
 async def main():
@@ -106,9 +86,48 @@ async def main():
         print(f'Usage: {sys.argv[0]} [COM Port]', file=sys.stderr)
         return
     
-    async with serve(echo, 'localhost', 8765):
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, lambda : serial_work(com_port, baud_rate))
+
+    try:
+        with Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
+            async def websocket_handler(websocket: WebSocketServerProtocol):
+                # Code here will run when a websocket client connects.
+                filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+
+                max_wait_seconds = 1e-3
+                start_time: float
+                is_receiving_serial = False
+
+                while True:
+                    if is_receiving_serial:
+                        if time.perf_counter() - start_time > max_wait_seconds:
+                            print('Timeout reached')
+                            is_receiving_serial = False
+                            continue
+
+                        data = receive(serial)
+                        if data:
+                            process_data(data, filename, serial)
+                            is_receiving_serial = False
+                    else:
+                        if serial.in_waiting > 0:
+                            byte = serial.read()[0]
+                            if (chr(byte) == '0'):
+                                print('Message incoming: ', end='')
+                                start_time = time.perf_counter()
+                                is_receiving_serial = True
+                            else:
+                                print(chr(byte), end='', flush=True)
+                        
+                        await try_receive_websocket(websocket)
+                
+
+                    
+
+            async with serve(websocket_handler, 'localhost', 8765):
+                await asyncio.Future()
+    except SerialException:
+        print("Invalid COM Port")
+        return
 
 
 if __name__ == '__main__':
@@ -116,4 +135,4 @@ if __name__ == '__main__':
         asyncio.run(main())
     except KeyboardInterrupt:
         print('Bye')
-        os._exit(1)
+        os._exit(0)
