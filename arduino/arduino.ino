@@ -41,8 +41,8 @@ void loop() {
     auto serialized = reinterpret_cast<const char *>(&data);
 
     // Signal the start of the message.
+    Serial.print("01");
     Serial.print('0');
-    Serial.print('1');
 
     // Send the actual data.
     for (int i = 0; i < sizeof(data); ++i) {
@@ -52,8 +52,28 @@ void loop() {
     lastTime = now;
   }
 
-  while (Serial.available()) {
-    const char character = Serial.read();
-    Serial.print(character);
+  if (Serial.available()) {
+    Serial.print("01");
+    Serial.print('1');
+
+    const auto start_time = millis();
+    const auto timeout_duration = 500;
+
+    unsigned long duration;
+    char character;
+
+    do {
+      const auto now = millis();
+      duration = now - start_time;
+
+      if (Serial.available()) {
+        character = Serial.read();
+        Serial.print(character);
+      }
+      if (duration >= timeout_duration) {
+        Serial.println();
+      }
+    } while (character != '\n' && duration < timeout_duration);
   }
+
 }

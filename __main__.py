@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from enum import Enum, IntEnum, auto
 import json
 import os
 from struct import unpack
@@ -32,8 +33,27 @@ class Data:
     DHT11_hum_outside: int
 
 
-samples = []
+class SerialState(Enum):
+    IDLE = auto()
+    RECEIVING_TYPE = auto()
+    RECEIVING_DATA = auto()
+    RECEIVING_TEXT = auto()
 
+
+class SerialMessageType(IntEnum):
+    DATA = ord('0')
+    TEXT = ord('1')
+
+
+samples = []
+    
+serial_data_wait_seconds = 1e-1
+serial_text_wait_seconds = 1
+serial_header_bytes = b'01'
+serial_header_index = 0
+serial_start_time: float
+serial_state = SerialState.IDLE
+serial_incoming_text = ''
 
 def deserialize(serialized: bytes):
     deserialized = unpack('<fffLfhhhBBBB', serialized)
@@ -48,10 +68,35 @@ def respond(serial: Serial):
     serial.write('Thank you for the data\n'.encode())
 
 
-def receive(serial: Serial) -> Data | None:
+def try_receive_text(serial: Serial) -> str | None:
+    global serial_state
+    global serial_incoming_text
+
+    if serial_timeout(serial_text_wait_seconds):
+        return None
+
+    if serial.in_waiting > 0:
+        byte = serial.read()[0]
+        character = chr(byte)
+        if character == '\n':
+            serial_state = SerialState.IDLE
+            return serial_incoming_text
+        else:
+            serial_incoming_text += character
+    return None
+        
+
+def try_receive_data(serial: Serial) -> Data | None:
+    global serial_header_index
+    global serial_state
+
+    if serial_timeout(serial_data_wait_seconds):
+        return None
+
     if serial.in_waiting >= 30:
         serialized = serial.read(30)
         data = deserialize(serialized)
+        serial_state = SerialState.IDLE
         return data
     else:
         return None
@@ -65,6 +110,51 @@ def process_data(data: Data, filename: str, serial: Serial):
 
     with open(filename, 'w') as file:
         json.dump(samples, file, indent=4)
+
+
+def try_receive_header(serial: Serial):
+    global serial_header_index
+    global serial_start_time
+    global serial_state
+    global serial_incoming_text
+
+    if serial.in_waiting == 0:
+        return
+    
+    byte = serial.read()[0]
+
+    if serial_state == SerialState.RECEIVING_TYPE:
+        match byte:
+            case SerialMessageType.DATA:
+                serial_state = SerialState.RECEIVING_DATA
+                serial_start_time = time.perf_counter()
+            case SerialMessageType.TEXT:
+                serial_state = SerialState.RECEIVING_TEXT
+                serial_start_time = time.perf_counter()
+                serial_incoming_text = ''
+            case _:
+                serial_state = SerialState.IDLE
+                print('Incorrect message type')
+    elif byte == serial_header_bytes[serial_header_index]:
+        serial_header_index += 1
+        if serial_header_index == len(serial_header_bytes):
+            serial_state = SerialState.RECEIVING_TYPE
+            serial_header_index = 0
+    else:
+        serial_header_index = 0
+        print(f"Incorrect start byte: '{chr(byte)}' = {byte}.")
+
+
+def serial_timeout(max_duration: str):
+    global serial_start_time
+    global serial_state
+
+    if time.perf_counter() - serial_start_time > max_duration:
+        serial_state = SerialState.IDLE
+        print('Timeout reached')
+        return True
+    else:
+        return False
 
 
 async def try_receive_websocket(websocket: WebSocketServerProtocol):
@@ -92,36 +182,19 @@ async def main():
                 # Code here will run when a websocket client connects.
                 filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
 
-                max_wait_seconds = 1e-3
-                start_time: float
-                start_bytes_received = 0
-
                 while True:
-                    if start_bytes_received == 2:
-                        if time.perf_counter() - start_time > max_wait_seconds:
-                            print('Timeout reached')
-                            start_bytes_received = 0
-                            continue
+                    await try_receive_websocket(websocket)
 
-                        data = receive(serial)
+                    if serial_state == SerialState.RECEIVING_DATA:
+                        data = try_receive_data(serial)
                         if data:
                             process_data(data, filename, serial)
-                            start_bytes_received = 0
+                    elif serial_state == SerialState.RECEIVING_TEXT:
+                        text = try_receive_text(serial)
+                        if text:
+                            print(text)
                     else:
-                        if serial.in_waiting > 0:
-                            byte = serial.read()[0]
-                            if (chr(byte) == '0' and start_bytes_received == 0):
-                                start_bytes_received = 1
-                            elif (chr(byte) == '1' and start_bytes_received == 1):
-                                start_bytes_received = 2
-                                print('Message incoming: ', end='')
-                                start_time = time.perf_counter()
-                            else:
-                                print(chr(byte), end='', flush=True)
-                                start_bytes_received = 0
-                        
-                        await try_receive_websocket(websocket)
-
+                        try_receive_header(serial)
 
             async with serve(websocket_handler, 'localhost', 8765):
                 await asyncio.Future()
