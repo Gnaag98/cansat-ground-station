@@ -37,6 +37,15 @@ class Relay:
         return self._receive_state
 
 
+    def _timeout(self, max_duration: str):
+        if time.perf_counter() - self._start_time > max_duration:
+            self._receive_state = ReceiveState.HEADER
+            print('Timeout reached')
+            return True
+        else:
+            return False
+
+
     def try_receive_header(self):
         if self._serial.in_waiting == 0:
             return
@@ -83,15 +92,6 @@ class Relay:
             return data
         else:
             return None
-
-
-    def _timeout(self, max_duration: str):
-        if time.perf_counter() - self._start_time > max_duration:
-            self._receive_state = ReceiveState.HEADER
-            print('Timeout reached')
-            return True
-        else:
-            return False
 
 
     def try_receive_text(self) -> str | None:
