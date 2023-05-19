@@ -15,3 +15,17 @@ socket.onmessage = event => {
 socket.onclose = _ => {
     clearInterval(intervalId);
 };
+
+const startStopButton = document.getElementById('startStop');
+startStopButton.addEventListener('click', event => {
+    const state = event.target.innerText;
+    if (state === 'Start') {
+        event.target.innerText = 'Stop';
+        socket.send('Start');
+        console.log('Start');
+    } else {
+        event.target.innerText = 'Start';
+        socket.send('Stop');
+        console.log('Stop');
+    }
+});
