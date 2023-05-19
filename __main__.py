@@ -32,24 +32,13 @@ def process_data(data: Data, filename: str, serial: Serial):
         json.dump(samples, file, indent=4)
 
 
-async def try_receive_websocket(websocket: WebSocketServerProtocol):
-    try:
-        async with asyncio.timeout(0):
-            message = await websocket.recv()
-            print(message)
-    except TimeoutError:
-        pass
+async def websocket_loop(websocket: WebSocketServerProtocol):
+    async for message in websocket:
+        print(message)
 
 
-async def loop(websocket: WebSocketServerProtocol, serial: Serial):
-    # Code here will run when a websocket client connects.
-    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
-
-    relay = Relay(serial)
-
-    while True:
-        await try_receive_websocket(websocket)
-
+async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, filename: str):
+    while websocket.open:
         match relay.receive_state:
             case ReceiveState.HEADER:
                 relay.try_receive_header()
@@ -63,6 +52,19 @@ async def loop(websocket: WebSocketServerProtocol, serial: Serial):
                 text = relay.try_receive_text()
                 if text:
                     print(text)
+        await asyncio.sleep(0)
+
+
+async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
+    # Code here will run when a websocket client connects.
+    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+
+    relay = Relay(serial)
+
+    async with asyncio.TaskGroup() as task_group:
+        task_group.create_task(serial_loop(websocket, serial, relay, filename))
+
+        await websocket_loop(websocket)
 
 
 async def main():
@@ -77,7 +79,7 @@ async def main():
 
     try:
         with Serial(port=com_port, baudrate=baud_rate, timeout=0) as serial:
-            async with serve(partial(loop, serial=serial), 'localhost', 8765):
+            async with serve(partial(on_websocket_connect, serial=serial), 'localhost', 8765):
                 await asyncio.Future()
     except SerialException:
         print("Invalid COM Port")
