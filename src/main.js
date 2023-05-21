@@ -79,9 +79,11 @@ startStopButton.addEventListener('click', event => {
         console.log('Start');
         chartIntervalId = setInterval(updateChart, 300);
     } else {
-        event.target.innerText = 'Start';
-        socket.send('Stop');
-        console.log('Stop');
-        clearInterval(chartIntervalId);
+        if (confirm('Do you really want to stop?')) {
+            event.target.innerText = 'Start';
+            socket.send('Stop');
+            console.log('Stop');
+            clearInterval(chartIntervalId);
+        }
     }
 });
