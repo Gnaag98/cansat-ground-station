@@ -1,0 +1,4 @@
+div:has(canvas) {
+    position: relative; 
+    height: 300px;
+}
