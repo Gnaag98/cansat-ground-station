@@ -38,7 +38,7 @@ chart = new Chart(ctx, {
     }
 });
 
-setInterval(() => {
+function updateChart() {
     const x = data.length;
     const y = Math.random();
 
@@ -49,14 +49,12 @@ setInterval(() => {
     chart.data.labels = data.map(row => row.x);
     chart.data.datasets[0].data = data.map(row => row.y);
     chart.update();
-
-}, 300);
-
-
+}
 
 const socket = new WebSocket("ws://localhost:8765");
 
 let intervalId;
+let chartIntervalId;
 
 socket.onopen = _ => {
     intervalId = setInterval(() => {
@@ -79,9 +77,11 @@ startStopButton.addEventListener('click', event => {
         event.target.innerText = 'Stop';
         socket.send('Start');
         console.log('Start');
+        chartIntervalId = setInterval(updateChart, 300);
     } else {
         event.target.innerText = 'Start';
         socket.send('Stop');
         console.log('Stop');
+        clearInterval(chartIntervalId);
     }
 });
