@@ -1,12 +1,10 @@
-from dataclasses import dataclass, asdict
-from enum import Enum, IntEnum, auto
+from dataclasses import asdict
 from functools import partial
 import json
 import os
-from struct import unpack
 import sys
 from datetime import datetime
-import time
+from pathlib import Path
 
 from serial import Serial, SerialException
 import asyncio
@@ -22,13 +20,15 @@ def respond(serial: Serial):
     serial.write('Thank you for the data\n'.encode())
 
 
-def process_data(data: Data, filename: str, serial: Serial):
+def process_data(data: Data, directory: Path, serial: Serial):
     print(data)
     respond(serial)
 
     samples.append(asdict(data))
 
-    with open(filename, 'w') as file:
+    path = directory / 'data.json'
+
+    with path.open('w') as file:
         json.dump(samples, file, indent=4)
 
 
@@ -37,7 +37,7 @@ async def websocket_loop(websocket: WebSocketServerProtocol):
         print(message)
 
 
-async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, filename: str):
+async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Path):
     while websocket.open:
         match relay.receive_state:
             case ReceiveState.HEADER:
@@ -47,7 +47,7 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
             case ReceiveState.DATA:
                 data = relay.try_receive_data()
                 if data:
-                    process_data(data, filename, serial)
+                    process_data(data, directory, serial)
             case ReceiveState.TEXT:
                 text = relay.try_receive_text()
                 if text:
@@ -57,12 +57,14 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
 async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
     # Code here will run when a websocket client connects.
-    filename = datetime.today().strftime("data/data_%Y-%m-%d_%H.%M.%S.txt")
+    date_string = datetime.today().strftime("%Y-%m-%d_%H.%M.%S")
+    directory = Path('data', date_string)
+    directory.mkdir()
 
     relay = Relay(serial)
 
     async with asyncio.TaskGroup() as task_group:
-        task_group.create_task(serial_loop(websocket, serial, relay, filename))
+        task_group.create_task(serial_loop(websocket, serial, relay, directory))
 
         await websocket_loop(websocket)
 
