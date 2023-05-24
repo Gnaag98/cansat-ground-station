@@ -74,6 +74,7 @@ const startStopButton = document.getElementById('startStop');
 startStopButton.addEventListener('click', event => {
     const state = event.target.innerText;
     if (state === 'Start') {
+        addEventListener("beforeunload", warnBeforeExiting);
         event.target.innerText = 'Stop';
         socket.send('Start');
         console.log('Start');
@@ -84,6 +85,12 @@ startStopButton.addEventListener('click', event => {
             socket.send('Stop');
             console.log('Stop');
             clearInterval(chartIntervalId);
+            removeEventListener("beforeunload", warnBeforeExiting);
         }
     }
 });
+
+function warnBeforeExiting(event) {
+    event.preventDefault();
+    return (event.returnValue = "");
+};
