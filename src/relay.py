@@ -3,7 +3,7 @@ import time
 
 from serial import Serial
 
-from .data import Data, deserialize
+from .data import Data, dataSize, deserialize
 
 _DATA_TIMEOUT_SECONDS = 0.1
 _TEXT_TIMEOUT_SECONDS = 1
@@ -85,8 +85,8 @@ class Relay:
         if self._timeout(_DATA_TIMEOUT_SECONDS):
             return None
 
-        if self._serial.in_waiting >= 30:
-            serialized = self._serial.read(30)
+        if self._serial.in_waiting >= dataSize:
+            serialized = self._serial.read(dataSize)
             data = deserialize(serialized)
             self._receive_state = ReceiveState.HEADER
             return data

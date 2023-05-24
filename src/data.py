@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from struct import unpack
 
+dataSize = 21
+
 
 @dataclass
 class Acceleration:
@@ -13,20 +15,35 @@ class Acceleration:
 class Data:
     acceleration: Acceleration
     time: int
-    WP_temp: float
+    temperature_outside: float
     sound: int
     distance: int
     air_quality: int
-    DHT11_temp_inside: int
-    DHT11_hum_inside: int
-    DHT11_temp_outside: int
-    DHT11_hum_outside: int
+    temperature_inside: int
+    humidity_inside: int
+    humidity_outside: int
+
+
+# The CanSat saves space by rounding off floats to three decimals and storing
+# the result as an int. It does this by multiplying the floats by 1000.
+def convertIntToFloat(number: int):
+    return number / 1000
+
+
+def convertAcceleration(x: int, y: int, z: int):
+    return Acceleration(
+        x=convertIntToFloat(x),
+        y=convertIntToFloat(y),
+        z=convertIntToFloat(z)
+    )
 
 
 def deserialize(serialized: bytes):
-    deserialized = unpack('<fffLfhhhBBBB', serialized)
+    deserialized = unpack('<hhhLhhhhBBB', serialized)
 
-    acceleration = Acceleration(*deserialized[:3])
-    remaining_variables = deserialized[3:]
+    acceleration = convertAcceleration(*deserialized[:3])
+    time = deserialized[3]
+    temperature_outside = convertIntToFloat(deserialized[4])
+    remaining_variables = deserialized[5:]
 
-    return Data(acceleration, *remaining_variables)
+    return Data(acceleration, time, temperature_outside, *remaining_variables)

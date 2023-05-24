@@ -1,18 +1,17 @@
 struct Acceleration {
-  float x, y, z;
+  int x, y, z;
 };
 
 struct Data {
   Acceleration acceleration;
   unsigned long time;
-  float WP_temp;
+  int temperature_outside;
   int sound;
   int distance;
   int air_quality;
-  byte DHT11_temp_inside;
-  byte DHT11_hum_inside;
-  byte DHT11_temp_outside;
-  byte DHT11_hum_outside;
+  byte temperature_inside;
+  byte humidity_inside;
+  byte humidity_outside;
 };
 
 unsigned long lastTime = 0;
@@ -34,8 +33,7 @@ void loop() {
       .air_quality = 8,
       .DHT11_temp_inside = 9,
       .DHT11_hum_inside = 10,
-      .DHT11_temp_outside = 11,
-      .DHT11_hum_outside = 12
+      .DHT11_hum_outside = 11
     };
 
     auto serialized = reinterpret_cast<const char *>(&data);
