@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from functools import partial
+import json
 import os
 import sys
 
@@ -26,6 +27,13 @@ def process_data(data: Data, directory: Directory):
     directory.save(data)
 
 
+def removeNoneFromDictionary(dictionary: dict):
+    return {
+        key: value for key, value in dictionary.items()
+        if value is not None
+    }
+
+
 async def websocket_loop(websocket: WebSocketServerProtocol):
     async for message in websocket:
         print(message)
@@ -42,6 +50,10 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                 data = relay.try_receive_data()
                 if data:
                     process_data(data, directory)
+
+                    filtered_data = removeNoneFromDictionary(asdict(data))
+                    await websocket.send(json.dumps(filtered_data))
+                    
                     respond(serial)
             case ReceiveState.TEXT:
                 text = relay.try_receive_text()
