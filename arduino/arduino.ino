@@ -15,7 +15,6 @@ struct Data {
 };
 
 unsigned long lastTime = 0;
-unsigned long timestamp = 0;
 
 void setup() {
   Serial.begin(115200);
@@ -23,17 +22,17 @@ void setup() {
 
 void loop() {
   const auto now = millis();
-  if (now - lastTime > 5000) {
+  if (now - lastTime > 2000) {
     auto data = Data{
-      .acceleration = Acceleration{ 1.0f, 2.0f, 3.0f },
-      .time = ++timestamp,
-      .WP_temp = 5.0f,
-      .sound = 6,
-      .distance = 7,
-      .air_quality = 8,
-      .DHT11_temp_inside = 9,
-      .DHT11_hum_inside = 10,
-      .DHT11_hum_outside = 11
+      .acceleration = Acceleration{ random(1000), random(2000), random(3000) },
+      .time = now,
+      .temperature_outside = random(5000),
+      .sound = random(6),
+      .distance = random(7),
+      .air_quality = random(8),
+      .temperature_inside = random(9),
+      .humidity_inside = random(10),
+      .humidity_outside = random(11)
     };
 
     auto serialized = reinterpret_cast<const char *>(&data);
