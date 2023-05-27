@@ -1,5 +1,6 @@
 let measurements = {
     acceleration: [],
+    gyroscope: [],
     temperature_outside: [],
     sound: [],
     distance: [],
@@ -52,22 +53,10 @@ chart = new Chart(ctx, {
     }
 });
 
-function updateChart() {
-    const x = data.length;
-    const y = Math.random();
-
-    data.push({ x: x, y: y });
-    // Sort the data in case the data was received out of order.
-    data.sort((a, b) => { return a.x - b.x });
-
-    chart.data.labels = data.map(row => row.x);
-    chart.data.datasets[0].data = data.map(row => row.y);
-    chart.update();
-}
-
 function storeData(data) {
     const time = data['time'];
     const acceleration = data['acceleration'];
+    const gyroscope = data['gyroscope'];
     const temperature_outside = data['temperature_outside'];
     const temperature_inside = data['temperature_inside'];
     const sound = data['sound'];
@@ -82,6 +71,15 @@ function storeData(data) {
             x: acceleration['x'],
             y: acceleration['y'],
             z: acceleration['z']
+        });
+    }
+    
+    if (gyroscope) {
+        measurements.gyroscope.push({
+            time: time,
+            x: gyroscope['x'],
+            y: gyroscope['y'],
+            z: gyroscope['z']
         });
     }
 
@@ -174,13 +172,11 @@ startStopButton.addEventListener('click', event => {
         event.target.innerText = 'Stop';
         socket.send('Start');
         console.log('Start');
-        //chartIntervalId = setInterval(updateChart, 300);
     } else {
         if (confirm('Do you really want to stop?')) {
             event.target.innerText = 'Start';
             socket.send('Stop');
             console.log('Stop');
-            //clearInterval(chartIntervalId);
             removeEventListener("beforeunload", warnBeforeExiting);
         }
     }

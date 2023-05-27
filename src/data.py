@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from struct import unpack
 
-dataSize = 21
+dataSize = 27
 
 
 @dataclass
-class Acceleration:
+class Vector:
     x: float
     y: float
     z: float
@@ -13,7 +13,8 @@ class Acceleration:
 
 @dataclass
 class Data:
-    acceleration: Acceleration
+    acceleration: Vector
+    gyroscope: Vector
     time: int
     temperature_outside: float
     sound: int
@@ -49,30 +50,31 @@ def convertIntToFloat(number: int):
     return number / 1000
 
 
-def convertAcceleration(x: int, y: int, z: int):
+def convertVector(x: int, y: int, z: int):
     x = convertIntToFloat(x)
     y = convertIntToFloat(y)
     z = convertIntToFloat(z)
 
     if x and y and z:
-        return Acceleration(x, y, z)
+        return Vector(x, y, z)
     else:
         return None
 
 
 def deserialize(serialized: bytes):
-    deserialized = unpack('<hhhLhhhhBBB', serialized)
+    deserialized = unpack('<hhhhhhLhhhhBBB', serialized)
 
     data = Data(
-        acceleration = convertAcceleration(*deserialized[:3]),
-        time = deserialized[3],
-        temperature_outside = convertNegativeToNone(convertIntToFloat(deserialized[4])),
-        sound = deserialized[5],
-        distance = convertNegativeToNone(deserialized[6]),
-        air_quality = deserialized[7],
-        temperature_inside = convert255ToNone(deserialized[8]),
-        humidity_inside = convert255ToNone(deserialized[9]),
-        humidity_outside = convert255ToNone(deserialized[10])
+        acceleration = convertVector(*deserialized[:3]),
+        gyroscope = convertVector(*deserialized[3:6]),
+        time = deserialized[6],
+        temperature_outside = convertNegativeToNone(convertIntToFloat(deserialized[7])),
+        sound = deserialized[8],
+        distance = convertNegativeToNone(deserialized[9]),
+        air_quality = deserialized[10],
+        temperature_inside = convert255ToNone(deserialized[11]),
+        humidity_inside = convert255ToNone(deserialized[12]),
+        humidity_outside = convert255ToNone(deserialized[13])
     )
 
     return data

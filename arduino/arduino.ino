@@ -1,9 +1,10 @@
-struct Acceleration {
+struct Vector {
   int x, y, z;
 };
 
 struct Data {
-  Acceleration acceleration;
+  Vector acceleration;
+  Vector gyroscope;
   unsigned long time;
   int temperature_outside;
   int sound;
@@ -24,15 +25,16 @@ void loop() {
   const auto now = millis();
   if (now - lastTime > 2000) {
     auto data = Data{
-      .acceleration = Acceleration{ random(1000), random(2000), random(3000) },
+      .acceleration = Vector{ random(1000), random(2000), random(3000) },
+      .gyroscope = Vector{ random(4000), random(5000), random(6000) },
       .time = now,
-      .temperature_outside = random(5000),
-      .sound = random(6),
-      .distance = random(7),
-      .air_quality = random(8),
-      .temperature_inside = random(9),
-      .humidity_inside = random(10),
-      .humidity_outside = random(11)
+      .temperature_outside = random(7000),
+      .sound = random(8),
+      .distance = random(9),
+      .air_quality = random(10),
+      .temperature_inside = random(11),
+      .humidity_inside = random(12),
+      .humidity_outside = random(13)
     };
 
     auto serialized = reinterpret_cast<const char *>(&data);
