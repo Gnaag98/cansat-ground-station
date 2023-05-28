@@ -24,13 +24,7 @@ def sendCommand(serial: Serial, message: str):
         serial.write(bytes([8, 0]))
 
 
-def respond(serial: Serial):
-    serial.write('Thank you for the data\n'.encode())
-
-
 def process_data(data: Data, directory: Directory):
-    print(data)
-
     samples.append(asdict(data))
 
     directory.save(data)
@@ -45,8 +39,6 @@ def removeNoneFromDictionary(dictionary: dict):
 
 async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
     async for message in websocket:
-        print(message)
-
         if (message == 'Start' or message == 'Stop'):
             sendCommand(serial, message)
 
@@ -66,7 +58,6 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                     filtered_data = removeNoneFromDictionary(asdict(data))
                     await websocket.send(json.dumps(filtered_data))
                     
-                    respond(serial)
             case ReceiveState.TEXT:
                 text = relay.try_receive_text()
                 if text:

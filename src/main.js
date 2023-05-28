@@ -140,18 +140,13 @@ function storeData(data) {
 
 const socket = new WebSocket("ws://localhost:8765");
 
-let intervalId;
 let chartIntervalId;
 
 socket.onopen = _ => {
-    intervalId = setInterval(() => {
-        socket.send("--Javascript");
-    }, 1000);
+    
 };
 
 socket.onmessage = event => {
-    console.log(event.data);
-
     const received_data = JSON.parse(event.data);
     storeData(received_data);
 
@@ -161,7 +156,7 @@ socket.onmessage = event => {
 };
 
 socket.onclose = _ => {
-    clearInterval(intervalId);
+    
 };
 
 const startStopButton = document.getElementById('startStop');
@@ -171,12 +166,10 @@ startStopButton.addEventListener('click', event => {
         addEventListener("beforeunload", warnBeforeExiting);
         event.target.innerText = 'Stop';
         socket.send('Start');
-        console.log('Start');
     } else {
         if (confirm('Do you really want to stop?')) {
             event.target.innerText = 'Start';
             socket.send('Stop');
-            console.log('Stop');
             removeEventListener("beforeunload", warnBeforeExiting);
         }
     }
