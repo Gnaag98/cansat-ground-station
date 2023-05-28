@@ -9,11 +9,61 @@ import asyncio
 from websockets.server import serve, WebSocketServerProtocol
 
 from src.relay import ReceiveState, Relay
-from src.data import Data
+from src.data import Vector, Data
 from src.directory import Directory
 
 samples = []
 websocketDelay = 500
+
+firstTimestamp: int
+accelerationOffset = Vector(
+    x= 9.9662,
+    y=-0.2673,
+    z= 0.0627
+)
+gyroscopeOffset = Vector(
+    x=-0.3818,
+    y=-0.2347,
+    z=-0.2842
+)
+insideTemepratureCoefficients = { 'k': 0.9153, 'm': 2.2295 }
+insideHumidityCoefficients = { 'k': 1.0660, 'm': -2.5015 }
+outsideHumidityCoefficients = { 'k': 0.9231, 'm': 3.3838 }
+
+
+def startTimeFromZero(data: Data):
+    global firstTimestamp
+
+    if not firstTimestamp:
+        firstTimestamp = data.time
+
+    data.time -= firstTimestamp
+
+
+def removeAccelerometerOffset(data: Data):
+    data.acceleration -= accelerationOffset
+
+
+def removeGyroscopeOffset(data: Data):
+    data.gyroscope -= gyroscopeOffset
+
+
+def convertInsideTemperature(data: Data):
+    k = insideTemepratureCoefficients['k']
+    m = insideTemepratureCoefficients['m']
+    data.temperature_inside = k * data.temperature_inside + m
+
+
+def convertInsideHumidity(data: Data):
+    k = insideHumidityCoefficients['k']
+    m = insideHumidityCoefficients['m']
+    data.humidity_inside = k * data.humidity_inside + m
+
+
+def convertOutsideHumidity(data: Data):
+    k = outsideHumidityCoefficients['k']
+    m = outsideHumidityCoefficients['m']
+    data.humidity_outside = k * data.humidity_outside + m
 
 
 def sendCommand(serial: Serial, message: str):
@@ -26,6 +76,15 @@ def sendCommand(serial: Serial, message: str):
 
 
 def process_data(data: Data, directory: Directory):
+    startTimeFromZero(data)
+
+    removeAccelerometerOffset(data)
+    removeGyroscopeOffset(data)
+
+    convertInsideTemperature(data)
+    convertInsideHumidity(data)
+    convertOutsideHumidity(data)
+
     samples.append(asdict(data))
 
     directory.save(data)
@@ -72,6 +131,10 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
 
 async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
+    global firstTimestamp
+    
+    firstTimestamp = None
+
     directory = Directory()
     relay = Relay(serial)
 

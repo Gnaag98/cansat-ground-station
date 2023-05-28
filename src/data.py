@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from struct import unpack
 
@@ -9,6 +11,14 @@ class Vector:
     x: float
     y: float
     z: float
+
+
+    def __sub__(self, other: Vector):
+        return Vector(
+            x=self.x - other.x,
+            y=self.y - other.y,
+            z=self.z - other.z
+        )
 
 
 @dataclass
