@@ -1,13 +1,11 @@
 let measurements = {
     acceleration: [],
     gyroscope: [],
-    temperature_outside: [],
     distance: [],
     air_quality: [],
     sound: [],
-    temperature_inside: [],
-    humidity_inside: [],
-    humidity_outside: []
+    temperature: [],
+    humidity: []
 };
 
 let visible_data = 'distance';
@@ -28,23 +26,28 @@ function createDataset(data, label) {
 
 function getDatasets() {
     const data = measurements[visible_data];
-    if (data.length > 0) {
-        if (data[0]['data']) {
-            return [
-                createDataset(data.map(row => row.data))
-            ];
+        if (data.length > 0) {
+            if (data[0]['data']) {
+                return [
+                    createDataset(data.map(row => row.data))
+                ];
+            } else if (data[0]['x']) {
+                return [
+                    createDataset(data.map(row => row.x), 'x'),
+                    createDataset(data.map(row => row.y), 'y'),
+                    createDataset(data.map(row => row.z), 'z')
+                ];
+            } else {
+                return [
+                    createDataset(data.map(row => row.outside), 'Outside'),
+                    createDataset(data.map(row => row.inside), 'Inside')
+                ];
+            }
         } else {
             return [
-                createDataset(data.map(row => row.x), 'x'),
-                createDataset(data.map(row => row.y), 'y'),
-                createDataset(data.map(row => row.z), 'z')
+                createDataset([])
             ];
         }
-    } else {
-        return [
-            createDataset([])
-        ];
-    }
 }
 
 function getTitle() {
@@ -60,11 +63,9 @@ function getUnit() {
             return '°/s';
         case 'distance':
             return 'cm';
-        case 'temperature_outside':
-        case 'temperature_inside':
+        case 'temperature':
             return '°C';
-        case 'humidity_outside':
-        case 'humidity_inside':
+        case 'humidity':
             return '%RH';
         default:
             return '';
@@ -84,7 +85,6 @@ chart = new Chart(chartCanvas, {
         scales: {
             x: {
                 ticks: {
-                    
                     display: true,
                     maxTicksLimit: 11,
                     callback: function(label) {
@@ -139,10 +139,13 @@ function updateChart() {
         chart.data.labels = getLabels();
         if (measurements[visible_data][0]['data']) {
             chart.data.datasets[0].data = measurements[visible_data].map(row => row.data);
-        } else {
+        } else if (measurements[visible_data][0]['x']) {
             chart.data.datasets[0].data = measurements[visible_data].map(row => row.x);
             chart.data.datasets[1].data = measurements[visible_data].map(row => row.y);
             chart.data.datasets[2].data = measurements[visible_data].map(row => row.z);
+        } else {
+            chart.data.datasets[0].data = measurements[visible_data].map(row => row.outside);
+            chart.data.datasets[1].data = measurements[visible_data].map(row => row.inside);
         }
 
     } else {
@@ -182,13 +185,6 @@ function storeData(data) {
         });
     }
 
-    if (temperature_outside) {
-        measurements.temperature_outside.push({
-            time: time,
-            data: temperature_outside
-        });
-    }
-
     if (sound) {
         measurements.sound.push({
             time: time,
@@ -210,24 +206,19 @@ function storeData(data) {
         });
     }
 
-    if (temperature_inside) {
-        measurements.temperature_inside.push({
+    if (temperature_outside || temperature_inside) {
+        measurements.temperature.push({
             time: time,
-            data: temperature_inside
+            outside: temperature_outside ?? null,
+            inside: temperature_inside ?? null
         });
     }
 
-    if (humidity_inside) {
-        measurements.humidity_inside.push({
+    if (humidity_outside || humidity_inside) {
+        measurements.humidity.push({
             time: time,
-            data: humidity_inside
-        });
-    }
-
-    if (humidity_outside) {
-        measurements.humidity_outside.push({
-            time: time,
-            data: humidity_outside
+            outside: humidity_outside ?? null,
+            inside: humidity_inside ?? null
         });
     }
 
