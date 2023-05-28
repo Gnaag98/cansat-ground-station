@@ -2,9 +2,9 @@ let measurements = {
     acceleration: [],
     gyroscope: [],
     temperature_outside: [],
-    sound: [],
     distance: [],
     air_quality: [],
+    sound: [],
     temperature_inside: [],
     humidity_inside: [],
     humidity_outside: []
@@ -52,6 +52,25 @@ function getTitle() {
     return associatedButton.innerText;
 }
 
+function getUnit() {
+    switch (visible_data) {
+        case 'acceleration':
+            return 'm/s^2';
+        case 'gyroscope':
+            return '°/s';
+        case 'distance':
+            return 'cm';
+        case 'temperature_outside':
+        case 'temperature_inside':
+            return '°C';
+        case 'humidity_outside':
+        case 'humidity_inside':
+            return '%RH';
+        default:
+            return '';
+    }
+}
+
 chart = new Chart(chartCanvas, {
     type: 'line',
     data: {
@@ -75,6 +94,14 @@ chart = new Chart(chartCanvas, {
                         minutes = minutes.toString().padStart(2, '0');
                         seconds = seconds.toString().padStart(2, '0');
                         return `T+${minutes}:${seconds}`;
+                    }
+                }
+            },
+            y: {
+                ticks: {
+                    callback: function(label) {
+                        label = this.getLabelForValue(label);
+                        return `${label} ${getUnit()}`;
                     }
                 }
             }
