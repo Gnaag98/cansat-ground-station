@@ -23,15 +23,15 @@ void setup() {
 
 void loop() {
   const auto now = millis();
-  if (now - lastTime > 2000) {
+  if (now - lastTime > 200) {
     auto data = Data{
       .acceleration = Vector{ random(1000), random(2000), random(3000) },
       .gyroscope = Vector{ random(4000), random(5000), random(6000) },
       .time = now,
       .temperature_outside = random(7000),
-      .sound = random(8),
-      .distance = random(9),
-      .air_quality = random(10),
+      .distance = random(8),
+      .air_quality = random(9),
+      .sound = random(10),
       .temperature_inside = random(11),
       .humidity_inside = random(12),
       .humidity_outside = random(13)
