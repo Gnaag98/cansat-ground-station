@@ -10,19 +10,48 @@ let measurements = {
     humidity_outside: []
 };
 
-let visible_data = 'sound';
+let visible_data = 'distance';
 
-const ctx = document.getElementById('myChart');
+const chartCanvas = document.getElementById('chart');
 
-chart = new Chart(ctx, {
+function getLabels() {
+    return measurements[visible_data].map(row => row.time);
+}
+
+function createDataset(data, label) {
+    return {
+        data: data,
+        borderWidth: 1,
+        label: label
+    }
+}
+
+function getDatasets() {
+    const data = measurements[visible_data];
+    if (data.length > 0) {
+        if (data[0]['data']) {
+            return [
+                createDataset(data.map(row => row.data))
+            ];
+        } else {
+            return [
+                createDataset(data.map(row => row.x), 'x'),
+                createDataset(data.map(row => row.y), 'y'),
+                createDataset(data.map(row => row.z), 'z')
+            ];
+        }
+    } else {
+        return [
+            createDataset([])
+        ];
+    }
+}
+
+chart = new Chart(chartCanvas, {
     type: 'line',
     data: {
-        labels: measurements[visible_data].map(row => row.time),
-        datasets: [{
-            label: 'Random data',
-            data: measurements[visible_data].map(row => row.data),
-            borderWidth: 1
-        }]
+        labels: getLabels(),
+        datasets: getDatasets()
     },
     options: {
         animation: true,
@@ -52,6 +81,40 @@ chart = new Chart(ctx, {
         }
     }
 });
+
+function resetChart() {
+    chart.data.labels = getLabels();
+    chart.data.datasets = getDatasets();
+
+    if (measurements[visible_data].length > 0) {
+        if (measurements[visible_data][0]['data']) {
+            chart.options.plugins.legend.display = false;
+        } else {
+            chart.options.plugins.legend.display = true;
+        }
+
+    }
+
+    chart.update();
+}
+
+function updateChart() {
+    if (measurements[visible_data].length > 0) {
+        chart.data.labels = getLabels();
+        if (measurements[visible_data][0]['data']) {
+            chart.data.datasets[0].data = measurements[visible_data].map(row => row.data);
+        } else {
+            chart.data.datasets[0].data = measurements[visible_data].map(row => row.x);
+            chart.data.datasets[1].data = measurements[visible_data].map(row => row.y);
+            chart.data.datasets[2].data = measurements[visible_data].map(row => row.z);
+        }
+
+    } else {
+        chart.data.labels = [];
+        chart.data.datasets = [];
+    }
+    chart.update();
+}
 
 function storeData(data) {
     const time = data['time'];
@@ -140,8 +203,6 @@ function storeData(data) {
 
 const socket = new WebSocket("ws://localhost:8765");
 
-let chartIntervalId;
-
 socket.onopen = _ => {
     
 };
@@ -150,9 +211,7 @@ socket.onmessage = event => {
     const received_data = JSON.parse(event.data);
     storeData(received_data);
 
-    chart.data.labels = measurements[visible_data].map(row => row.time);
-    chart.data.datasets[0].data = measurements[visible_data].map(row => row.data);
-    chart.update();
+    updateChart();
 };
 
 socket.onclose = _ => {
@@ -174,6 +233,14 @@ startStopButton.addEventListener('click', event => {
         }
     }
 });
+
+const chartButtons = document.getElementsByClassName('chartButton');
+for (const button of chartButtons) {
+    button.addEventListener('click', event => {
+        visible_data = event.target.id;
+        resetChart();
+    });
+}
 
 function warnBeforeExiting(event) {
     event.preventDefault();
