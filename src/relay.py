@@ -19,7 +19,8 @@ class ReceiveState(Enum):
 
 class MessageType(IntEnum):
     DATA = ord('0')
-    TEXT = ord('1')
+    DROP = ord('1')
+    TEXT = ord('2')
 
 
 class Relay:
@@ -37,7 +38,7 @@ class Relay:
         return self._receive_state
 
 
-    def _timeout(self, max_duration: str):
+    def _timeout(self, max_duration: float):
         if time.perf_counter() - self._start_time > max_duration:
             self._receive_state = ReceiveState.HEADER
             print('Timeout reached')
