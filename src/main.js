@@ -47,6 +47,11 @@ function getDatasets() {
     }
 }
 
+function getTitle() {
+    associatedButton = document.getElementById(visible_data);
+    return associatedButton.innerText;
+}
+
 chart = new Chart(chartCanvas, {
     type: 'line',
     data: {
@@ -77,6 +82,10 @@ chart = new Chart(chartCanvas, {
         plugins: {
             legend: {
                 display: false
+            },
+            title: {
+                display: true,
+                text: getTitle()
             }
         }
     }
@@ -85,6 +94,7 @@ chart = new Chart(chartCanvas, {
 function resetChart() {
     chart.data.labels = getLabels();
     chart.data.datasets = getDatasets();
+    chart.options.plugins.title.text = getTitle();
 
     if (measurements[visible_data].length > 0) {
         if (measurements[visible_data][0]['data']) {
@@ -92,7 +102,6 @@ function resetChart() {
         } else {
             chart.options.plugins.legend.display = true;
         }
-
     }
 
     chart.update();
