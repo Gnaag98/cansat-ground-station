@@ -7,9 +7,9 @@ struct Data {
   Vector gyroscope;
   unsigned long time;
   int temperature_outside;
-  int sound;
   int distance;
   int air_quality;
+  int sound;
   byte temperature_inside;
   byte humidity_inside;
   byte humidity_outside;

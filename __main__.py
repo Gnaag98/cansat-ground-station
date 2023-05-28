@@ -15,6 +15,15 @@ from src.directory import Directory
 samples = []
 
 
+def sendCommand(serial: Serial, message: str):
+    serial.write('01'.encode())
+
+    if message == 'Start':
+        serial.write(bytes([8, 1]))
+    elif message == 'Stop':
+        serial.write(bytes([8, 0]))
+
+
 def respond(serial: Serial):
     serial.write('Thank you for the data\n'.encode())
 
@@ -34,9 +43,12 @@ def removeNoneFromDictionary(dictionary: dict):
     }
 
 
-async def websocket_loop(websocket: WebSocketServerProtocol):
+async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
     async for message in websocket:
         print(message)
+
+        if (message == 'Start' or message == 'Stop'):
+            sendCommand(serial, message)
 
 
 async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Directory):
@@ -69,7 +81,7 @@ async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Seria
     async with asyncio.TaskGroup() as task_group:
         task_group.create_task(serial_loop(websocket, serial, relay, directory))
 
-        await websocket_loop(websocket)
+        await websocket_loop(websocket, serial)
 
 
 async def main():
