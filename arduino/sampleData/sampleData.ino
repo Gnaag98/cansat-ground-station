@@ -53,7 +53,7 @@ void loop() {
 
   if (Serial.available()) {
     Serial.print("01");
-    Serial.print('1');
+    Serial.print('2');
 
     const auto start_time = millis();
     const auto timeout_duration = 500;

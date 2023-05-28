@@ -251,11 +251,11 @@ startStopButton.addEventListener('click', event => {
     if (state === 'Start') {
         addEventListener("beforeunload", warnBeforeExiting);
         event.target.innerText = 'Stop';
-        socket.send('Start');
+        socket.send('Run:1');
     } else {
         if (confirm('Do you really want to stop?')) {
             event.target.innerText = 'Start';
-            socket.send('Stop');
+            socket.send('Run:0');
             removeEventListener("beforeunload", warnBeforeExiting);
         }
     }
@@ -273,3 +273,18 @@ function warnBeforeExiting(event) {
     event.preventDefault();
     return (event.returnValue = "");
 };
+
+const toggleButtons = document.getElementsByClassName('toggleButton');
+for (const button of toggleButtons) {
+    button.addEventListener('click', event => {
+        let state;
+        if (button.classList.contains('off')) {
+            state = 1;
+            button.classList.remove('off');
+        } else {
+            state = 0;
+            button.classList.add('off');
+        }
+        socket.send(`${event.target.innerText}:${state}`);
+    });
+}

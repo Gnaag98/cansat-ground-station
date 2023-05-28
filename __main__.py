@@ -12,6 +12,19 @@ from src.relay import ReceiveState, Relay
 from src.data import Vector, Data
 from src.directory import Directory
 
+commands = {
+    'Accelerometer': 0,
+    'Gyroscope': 1,
+    'Waterproof': 2,
+    'Ultrasonic': 3,
+    'Air Quality': 4,
+    'Sound': 5,
+    'DHT inside': 6,
+    'DHT outside': 7,
+    'Run': 8,
+    'Radio Channel': 9
+}
+
 samples = []
 websocketDelay = 500
 
@@ -66,13 +79,9 @@ def convertOutsideHumidity(data: Data):
     data.humidity_outside = k * data.humidity_outside + m
 
 
-def sendCommand(serial: Serial, message: str):
+def sendCommand(serial: Serial, action: int, value: int):
     serial.write('01'.encode())
-
-    if message == 'Start':
-        serial.write(bytes([8, 1]))
-    elif message == 'Stop':
-        serial.write(bytes([8, 0]))
+    serial.write(bytes([action, value]))
 
 
 def process_data(data: Data, directory: Directory):
@@ -99,8 +108,11 @@ def removeNoneFromDictionary(dictionary: dict):
 
 async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
     async for message in websocket:
-        if (message == 'Start' or message == 'Stop'):
-            sendCommand(serial, message)
+        if ':' in message:
+            action, value = message.split(':')
+            sendCommand(serial, commands[action], int(value))
+        else:
+            print(message)
 
 
 async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Directory):
@@ -132,7 +144,7 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
 async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
     global firstTimestamp
-    
+
     firstTimestamp = None
 
     directory = Directory()
