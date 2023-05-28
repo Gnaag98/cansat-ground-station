@@ -13,6 +13,7 @@ from src.data import Data
 from src.directory import Directory
 
 samples = []
+websocketDelay = 500
 
 
 def sendCommand(serial: Serial, message: str):
@@ -44,6 +45,8 @@ async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
 
 
 async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Directory):
+    lastSentData: Data = None
+
     while websocket.open:
         match relay.receive_state:
             case ReceiveState.HEADER:
@@ -56,7 +59,10 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                     process_data(data, directory)
 
                     filtered_data = removeNoneFromDictionary(asdict(data))
-                    await websocket.send(json.dumps(filtered_data))
+
+                    if not lastSentData or data.time - lastSentData.time >= websocketDelay:
+                        await websocket.send(json.dumps(filtered_data))    
+                        lastSentData = data
                     
             case ReceiveState.TEXT:
                 text = relay.try_receive_text()
