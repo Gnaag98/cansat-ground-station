@@ -17,9 +17,9 @@ class Data:
     gyroscope: Vector
     time: int
     temperature_outside: float
-    sound: int
     distance: int
     air_quality: int
+    sound: int
     temperature_inside: int
     humidity_inside: int
     humidity_outside: int
@@ -55,10 +55,7 @@ def convertVector(x: int, y: int, z: int):
     y = convertIntToFloat(y)
     z = convertIntToFloat(z)
 
-    if x and y and z:
-        return Vector(x, y, z)
-    else:
-        return None
+    return Vector(x, y, z)
 
 
 def deserialize(serialized: bytes):
@@ -69,9 +66,9 @@ def deserialize(serialized: bytes):
         gyroscope = convertVector(*deserialized[3:6]),
         time = deserialized[6],
         temperature_outside = convertNegativeToNone(convertIntToFloat(deserialized[7])),
-        sound = deserialized[8],
-        distance = convertNegativeToNone(deserialized[9]),
-        air_quality = deserialized[10],
+        distance = convertNegativeToNone(deserialized[8]),
+        air_quality = deserialized[9],
+        sound = deserialized[10],
         temperature_inside = convert255ToNone(deserialized[11]),
         humidity_inside = convert255ToNone(deserialized[12]),
         humidity_outside = convert255ToNone(deserialized[13])
