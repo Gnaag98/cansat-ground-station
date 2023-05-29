@@ -63,6 +63,7 @@ def ignore_disabled_sensors(data: Data):
     if not enabled_sensors['Accelerometer']:
         data.acceleration = None
     if not enabled_sensors['Gyroscope']:
+        print('Acceleration off')
         data.gyroscope = None
     if not enabled_sensors['Waterproof']:
         data.temperature_outside = None
@@ -161,9 +162,10 @@ async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
     async for message in websocket:
         if ':' in message:
             action, value = message.split(':')
+            value = int(value)
             if action in enabled_sensors:
                 toggle_sensor(action, bool(value))
-            sendCommand(serial, commands[action], int(value))
+            sendCommand(serial, commands[action], value)
         else:
             print(message)
 
