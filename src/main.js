@@ -166,61 +166,47 @@ function storeData(data) {
     const air_quality = data['air_quality'];
     const humidity_inside = data['humidity_inside'];
     const humidity_outside = data['humidity_outside'];
-    
-    if (acceleration) {
-        measurements.acceleration.push({
-            time: time,
-            x: acceleration['x'],
-            y: acceleration['y'],
-            z: acceleration['z']
-        });
-    }
-    
-    if (gyroscope) {
-        measurements.gyroscope.push({
-            time: time,
-            x: gyroscope['x'],
-            y: gyroscope['y'],
-            z: gyroscope['z']
-        });
-    }
 
-    if (sound) {
-        measurements.sound.push({
-            time: time,
-            data: sound
-        });
-    }
+    measurements.acceleration.push({
+        time: time,
+        x: acceleration['x'] ?? null,
+        y: acceleration['y'] ?? null,
+        z: acceleration['z'] ?? null
+    });
 
-    if (distance) {
-        measurements.distance.push({
-            time: time,
-            data: distance
-        });
-    }
+    measurements.gyroscope.push({
+        time: time,
+        x: gyroscope['x'] ?? null,
+        y: gyroscope['y'] ?? null,
+        z: gyroscope['z'] ?? null
+    });
 
-    if (air_quality) {
-        measurements.air_quality.push({
-            time: time,
-            data: air_quality
-        });
-    }
+    measurements.sound.push({
+        time: time,
+        data: sound ?? null
+    });
 
-    if (temperature_outside || temperature_inside) {
-        measurements.temperature.push({
-            time: time,
-            outside: temperature_outside ?? null,
-            inside: temperature_inside ?? null
-        });
-    }
+    measurements.distance.push({
+        time: time,
+        data: distance ?? null
+    });
 
-    if (humidity_outside || humidity_inside) {
-        measurements.humidity.push({
-            time: time,
-            outside: humidity_outside ?? null,
-            inside: humidity_inside ?? null
-        });
-    }
+    measurements.air_quality.push({
+        time: time,
+        data: air_quality ?? null
+    });
+
+    measurements.temperature.push({
+        time: time,
+        outside: temperature_outside ?? null,
+        inside: temperature_inside ?? null
+    });
+
+    measurements.humidity.push({
+        time: time,
+        outside: humidity_outside ?? null,
+        inside: humidity_inside ?? null
+    });
 
     // Sort the data in case the data was received out of order.
     for (const measurement_type in measurements) {
