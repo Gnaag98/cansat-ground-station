@@ -8,12 +8,25 @@ let measurements = {
     humidity: []
 };
 
-let visible_data = 'distance';
+function getDatasetCount() {
+    switch (visibleData) {
+        case 'acceleration':
+        case 'gyroscope':
+            return 3;
+        case 'temperature':
+        case 'humidity':
+            return 2;
+        default:
+            return 1;
+    }
+}
+
+let visibleData = 'distance';
 
 const chartCanvas = document.getElementById('chart');
 
 function getLabels() {
-    return measurements[visible_data].map(row => row.time);
+    return measurements[visibleData].map(row => row.time);
 }
 
 function createDataset(data, label) {
@@ -25,38 +38,33 @@ function createDataset(data, label) {
 }
 
 function getDatasets() {
-    const data = measurements[visible_data];
-        if (data.length > 0) {
-            if (data[0]['data']) {
-                return [
-                    createDataset(data.map(row => row.data))
-                ];
-            } else if (data[0]['x']) {
-                return [
-                    createDataset(data.map(row => row.x), 'x'),
-                    createDataset(data.map(row => row.y), 'y'),
-                    createDataset(data.map(row => row.z), 'z')
-                ];
-            } else {
-                return [
-                    createDataset(data.map(row => row.outside), 'Outside'),
-                    createDataset(data.map(row => row.inside), 'Inside')
-                ];
-            }
-        } else {
-            return [
-                createDataset([])
-            ];
-        }
+    const data = measurements[visibleData];
+    switch (getDatasetCount()) {
+    case 1:
+        return [
+            createDataset(data.map(row => row.data))
+        ];
+    case 2:
+        return [
+            createDataset(data.map(row => row.outside), 'Outside'),
+            createDataset(data.map(row => row.inside), 'Inside')
+        ];
+    case 3:
+        return [
+            createDataset(data.map(row => row.x), 'x'),
+            createDataset(data.map(row => row.y), 'y'),
+            createDataset(data.map(row => row.z), 'z'),
+        ];
+    }
 }
 
 function getTitle() {
-    associatedButton = document.getElementById(visible_data);
+    associatedButton = document.getElementById(visibleData);
     return associatedButton.innerText;
 }
 
 function getUnit() {
-    switch (visible_data) {
+    switch (visibleData) {
         case 'acceleration':
             return 'm/s^2';
         case 'gyroscope':
@@ -123,35 +131,37 @@ function resetChart() {
     chart.data.datasets = getDatasets();
     chart.options.plugins.title.text = getTitle();
 
-    if (measurements[visible_data].length > 0) {
-        if (measurements[visible_data][0]['data']) {
-            chart.options.plugins.legend.display = false;
-        } else {
-            chart.options.plugins.legend.display = true;
-        }
+    switch (getDatasetCount()) {
+    case 1:
+        chart.options.plugins.legend.display = false;
+        break;
+    case 2:
+    case 3:
+        chart.options.plugins.legend.display = true;
+        break;
     }
 
     chart.update();
 }
 
 function updateChart() {
-    if (measurements[visible_data].length > 0) {
-        chart.data.labels = getLabels();
-        if (measurements[visible_data][0]['data']) {
-            chart.data.datasets[0].data = measurements[visible_data].map(row => row.data);
-        } else if (measurements[visible_data][0]['x']) {
-            chart.data.datasets[0].data = measurements[visible_data].map(row => row.x);
-            chart.data.datasets[1].data = measurements[visible_data].map(row => row.y);
-            chart.data.datasets[2].data = measurements[visible_data].map(row => row.z);
-        } else {
-            chart.data.datasets[0].data = measurements[visible_data].map(row => row.outside);
-            chart.data.datasets[1].data = measurements[visible_data].map(row => row.inside);
-        }
+    chart.data.labels = getLabels();
 
-    } else {
-        chart.data.labels = [];
-        chart.data.datasets = [];
+    switch (getDatasetCount()) {
+    case 1:
+        chart.data.datasets[0].data = measurements[visibleData].map(row => row.data);
+        break;
+    case 2:
+        chart.data.datasets[0].data = measurements[visibleData].map(row => row.outside);
+        chart.data.datasets[1].data = measurements[visibleData].map(row => row.inside);
+        break;
+    case 3:
+        chart.data.datasets[0].data = measurements[visibleData].map(row => row.x);
+        chart.data.datasets[1].data = measurements[visibleData].map(row => row.y);
+        chart.data.datasets[2].data = measurements[visibleData].map(row => row.z);
+        break;
     }
+    
     chart.update();
 }
 
@@ -259,7 +269,7 @@ startStopButton.addEventListener('click', event => {
 
 for (const button of chartButtons) {
     button.addEventListener('click', event => {
-        visible_data = event.target.id;
+        visibleData = event.target.id;
         resetChart();
     });
 }
