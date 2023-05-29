@@ -25,6 +25,17 @@ commands = {
     'Radio Channel': 9
 }
 
+enabled_sensors = {
+    'Accelerometer': True,
+    'Gyroscope': True,
+    'Waterproof': True,
+    'Ultrasonic': True,
+    'Air Quality': True,
+    'Sound': True,
+    'DHT inside': True,
+    'DHT outside': True
+}
+
 websocketDelay = 500
 
 accelerationOffset = Vector(
@@ -46,6 +57,27 @@ timestamps = []
 
 def startTimeFromZero(data: Data):
     data.time -= timestamps[0]
+
+
+def ignore_disabled_sensors(data: Data):
+    if not enabled_sensors['Accelerometer']:
+        data.acceleration = None
+    if not enabled_sensors['Gyroscope']:
+        data.gyroscope = None
+    if not enabled_sensors['Waterproof']:
+        data.temperature_outside = None
+    if not enabled_sensors['Ultrasonic']:
+        data.distance = None
+    if not enabled_sensors['Air Quality']:
+        data.air_quality = None
+    if not enabled_sensors['Sound']:
+        data.sound = None
+    if not enabled_sensors['DHT inside']:
+        data.temperature_inside = None
+        data.humidity_inside = None
+    if not enabled_sensors['DHT outside']:
+        data.humidity_outside = None
+    
 
 
 def removeAccelerometerOffset(data: Data):
@@ -98,6 +130,12 @@ def removeNoneFromDictionary(dictionary: dict):
     }
 
 
+def toggle_sensor(sensor: str, state: bool):
+    global enabled_sensors
+
+    enabled_sensors[sensor] = state
+
+
 def sendCommand(serial: Serial, action: int, value: int):
     serial.write('01'.encode())
     serial.write(bytes([action, value]))
@@ -107,6 +145,8 @@ async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
     async for message in websocket:
         if ':' in message:
             action, value = message.split(':')
+            if action in enabled_sensors:
+                toggle_sensor(action, bool(value))
             sendCommand(serial, commands[action], int(value))
         else:
             print(message)
@@ -130,6 +170,8 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
                     if data.time >= 0 and not data.time in timestamps:
                         timestamps.append(data.time)
+
+                        ignore_disabled_sensors(data)
 
                         process_data(data)
 
