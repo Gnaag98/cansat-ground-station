@@ -90,6 +90,7 @@ chart = new Chart(chartCanvas, {
         animation: true,
         pointStyle: false,
         maintainAspectRatio: false,
+        spanGaps: true,
         scales: {
             x: {
                 ticks: {

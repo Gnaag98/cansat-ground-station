@@ -179,7 +179,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                         
                         filtered_data = removeNoneFromDictionary(asdict(data))
 
-                        if not lastSentData or data.time - lastSentData.time >= websocketDelay:
+                        if (not lastSentData
+                            or data.temperature_inside
+                            or data.temperature_outside
+                            or data.humidity_inside
+                            or data.humidity_outside
+                            or data.time - lastSentData.time >= websocketDelay):
                             await websocket.send(json.dumps(filtered_data))    
                             lastSentData = data
             case ReceiveState.DROP:
