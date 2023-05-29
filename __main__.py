@@ -39,14 +39,14 @@ enabled_sensors = {
 websocketDelay = 500
 
 accelerationOffset = Vector(
-    x= 9.9662,
-    y=-0.2673,
-    z= 0.0627
+    x=0.0890,
+    y=0.4801,
+    z=9.7219
 )
 gyroscopeOffset = Vector(
-    x=-0.3818,
-    y=-0.2347,
-    z=-0.2842
+    x=-1.4647,
+    y=-0.8470,
+    z=-1.2042
 )
 insideTemepratureCoefficients = { 'k': 0.9153, 'm': 2.2295 }
 insideHumidityCoefficients = { 'k': 1.0660, 'm': -2.5015 }
