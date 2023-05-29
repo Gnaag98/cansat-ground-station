@@ -180,16 +180,16 @@ function storeData(data) {
 
     measurements.acceleration.push({
         time: time,
-        x: acceleration['x'] ?? null,
-        y: acceleration['y'] ?? null,
-        z: acceleration['z'] ?? null
+        x: acceleration?.['x'] ?? null,
+        y: acceleration?.['y'] ?? null,
+        z: acceleration?.['z'] ?? null
     });
 
     measurements.gyroscope.push({
         time: time,
-        x: gyroscope['x'] ?? null,
-        y: gyroscope['y'] ?? null,
-        z: gyroscope['z'] ?? null
+        x: gyroscope?.['x'] ?? null,
+        y: gyroscope?.['y'] ?? null,
+        z: gyroscope?.['z'] ?? null
     });
 
     measurements.sound.push({
