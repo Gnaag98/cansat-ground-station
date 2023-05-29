@@ -62,21 +62,24 @@ def removeGyroscopeOffset(data: Data):
 
 
 def convertInsideTemperature(data: Data):
-    k = insideTemepratureCoefficients['k']
-    m = insideTemepratureCoefficients['m']
-    data.temperature_inside = k * data.temperature_inside + m
+    if data.temperature_inside is not None:
+        k = insideTemepratureCoefficients['k']
+        m = insideTemepratureCoefficients['m']
+        data.temperature_inside = k * data.temperature_inside + m
 
 
 def convertInsideHumidity(data: Data):
-    k = insideHumidityCoefficients['k']
-    m = insideHumidityCoefficients['m']
-    data.humidity_inside = k * data.humidity_inside + m
+    if data.humidity_inside is not None:
+        k = insideHumidityCoefficients['k']
+        m = insideHumidityCoefficients['m']
+        data.humidity_inside = k * data.humidity_inside + m
 
 
 def convertOutsideHumidity(data: Data):
-    k = outsideHumidityCoefficients['k']
-    m = outsideHumidityCoefficients['m']
-    data.humidity_outside = k * data.humidity_outside + m
+    if data.humidity_outside is not None:
+        k = outsideHumidityCoefficients['k']
+        m = outsideHumidityCoefficients['m']
+        data.humidity_outside = k * data.humidity_outside + m
 
 
 def sendCommand(serial: Serial, action: int, value: int):
@@ -129,11 +132,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                 if data:
                     process_data(data, directory)
 
-                    filtered_data = removeNoneFromDictionary(asdict(data))
+                    if data.time >= 0:
+                        filtered_data = removeNoneFromDictionary(asdict(data))
 
-                    if not lastSentData or data.time - lastSentData.time >= websocketDelay:
-                        await websocket.send(json.dumps(filtered_data))    
-                        lastSentData = data
+                        if not lastSentData or data.time - lastSentData.time >= websocketDelay:
+                            await websocket.send(json.dumps(filtered_data))    
+                            lastSentData = data
                     
             case ReceiveState.TEXT:
                 text = relay.try_receive_text()

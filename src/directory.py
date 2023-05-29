@@ -23,15 +23,25 @@ class Directory:
 
 
     def save(self, data: Data):
-        self._save_vector(self._directory / 'acceleration.csv', data.time, data.acceleration)
-        self._save_vector(self._directory / 'gyroscope.csv', data.time, data.gyroscope)
-        self._save_number(self._directory / 'temperature_outside.csv', data.time, data.temperature_outside)
-        self._save_number(self._directory / 'distance.csv', data.time, data.distance)
-        self._save_number(self._directory / 'air_quality.csv', data.time, data.air_quality)
-        self._save_number(self._directory / 'sound.csv', data.time, data.sound)
-        self._save_number(self._directory / 'temperature_inside.csv', data.time, data.temperature_inside)
-        self._save_number(self._directory / 'humidity_inside.csv', data.time, data.humidity_inside)
-        self._save_number(self._directory / 'humidity_outside.csv', data.time, data.humidity_outside)
+        self._save_vector_if_not_none(self._directory / 'acceleration.csv', data.time, data.acceleration)
+        self._save_vector_if_not_none(self._directory / 'gyroscope.csv', data.time, data.gyroscope)
+        self._save_number_if_not_none(self._directory / 'temperature_outside.csv', data.time, data.temperature_outside)
+        self._save_number_if_not_none(self._directory / 'distance.csv', data.time, data.distance)
+        self._save_number_if_not_none(self._directory / 'air_quality.csv', data.time, data.air_quality)
+        self._save_number_if_not_none(self._directory / 'sound.csv', data.time, data.sound)
+        self._save_number_if_not_none(self._directory / 'temperature_inside.csv', data.time, data.temperature_inside)
+        self._save_number_if_not_none(self._directory / 'humidity_inside.csv', data.time, data.humidity_inside)
+        self._save_number_if_not_none(self._directory / 'humidity_outside.csv', data.time, data.humidity_outside)
+
+
+    def _save_vector_if_not_none(self, path: Path, time: int, data: Vector):
+        if data is not None:
+            self._save_vector(path, time, data)
+
+
+    def _save_number_if_not_none(self, path: Path, time: int, data: int | float):
+        if data is not None:
+            self._save_number(path, time, data)
 
 
     def _initialize_vector_file(self, path: Path):
