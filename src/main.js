@@ -245,17 +245,21 @@ socket.onclose = _ => {
     
 };
 
+function sendCommand(action, value) {
+    socket.send(`${action}:${value}`);
+}
+
 const startStopButton = document.getElementById('startStop');
 startStopButton.addEventListener('click', event => {
     const state = event.target.innerText;
     if (state === 'Start') {
         addEventListener("beforeunload", warnBeforeExiting);
         event.target.innerText = 'Stop';
-        socket.send('Run:1');
+        sendCommand('Run', 1);
     } else {
         if (confirm('Do you really want to stop?')) {
             event.target.innerText = 'Start';
-            socket.send('Run:0');
+            sendCommand('Run', 0);
             removeEventListener("beforeunload", warnBeforeExiting);
         }
     }
@@ -285,6 +289,6 @@ for (const button of toggleButtons) {
             state = 0;
             button.classList.add('off');
         }
-        socket.send(`${event.target.innerText}:${state}`);
+        sendCommand(event.target.innerText, state);
     });
 }
