@@ -81,11 +81,13 @@ def ignore_disabled_sensors(data: Data):
 
 
 def removeAccelerometerOffset(data: Data):
-    data.acceleration -= accelerationOffset
+    if data.acceleration is not None:
+        data.acceleration -= accelerationOffset
 
 
 def removeGyroscopeOffset(data: Data):
-    data.gyroscope -= gyroscopeOffset
+    if data.gyroscope is not None:
+        data.gyroscope -= gyroscopeOffset
 
 
 def convertInsideTemperature(data: Data):
@@ -165,14 +167,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                 relay.try_receive_type()
             case ReceiveState.DATA:
                 data = relay.try_receive_data()
-                if data:
+                if data and not data.time in timestamps:
+                    timestamps.append(data.time)
                     startTimeFromZero(data)
 
-                    if data.time >= 0 and not data.time in timestamps:
-                        timestamps.append(data.time)
-
+                    if data.time >= 0:
                         ignore_disabled_sensors(data)
-
                         process_data(data)
 
                         directory.saveData(data)
