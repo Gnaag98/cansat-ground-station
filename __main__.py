@@ -25,10 +25,8 @@ commands = {
     'Radio Channel': 9
 }
 
-samples = []
 websocketDelay = 500
 
-firstTimestamp: int
 accelerationOffset = Vector(
     x= 9.9662,
     y=-0.2673,
@@ -43,14 +41,11 @@ insideTemepratureCoefficients = { 'k': 0.9153, 'm': 2.2295 }
 insideHumidityCoefficients = { 'k': 1.0660, 'm': -2.5015 }
 outsideHumidityCoefficients = { 'k': 0.9231, 'm': 3.3838 }
 
+timestamps = []
+
 
 def startTimeFromZero(data: Data):
-    global firstTimestamp
-
-    if not firstTimestamp:
-        firstTimestamp = data.time
-
-    data.time -= firstTimestamp
+    data.time -= timestamps[0]
 
 
 def removeAccelerometerOffset(data: Data):
@@ -82,14 +77,7 @@ def convertOutsideHumidity(data: Data):
         data.humidity_outside = k * data.humidity_outside + m
 
 
-def sendCommand(serial: Serial, action: int, value: int):
-    serial.write('01'.encode())
-    serial.write(bytes([action, value]))
-
-
 def process_data(data: Data, directory: Directory):
-    startTimeFromZero(data)
-
     removeAccelerometerOffset(data)
     removeGyroscopeOffset(data)
 
@@ -97,16 +85,17 @@ def process_data(data: Data, directory: Directory):
     convertInsideHumidity(data)
     convertOutsideHumidity(data)
 
-    samples.append(asdict(data))
-
-    directory.save(data)
-
 
 def removeNoneFromDictionary(dictionary: dict):
     return {
         key: value for key, value in dictionary.items()
         if value is not None
     }
+
+
+def sendCommand(serial: Serial, action: int, value: int):
+    serial.write('01'.encode())
+    serial.write(bytes([action, value]))
 
 
 async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
@@ -119,6 +108,8 @@ async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
 
 
 async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Directory):
+    global timestamps
+
     lastSentData: Data = None
 
     while websocket.open:
@@ -130,9 +121,15 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
             case ReceiveState.DATA:
                 data = relay.try_receive_data()
                 if data:
-                    process_data(data, directory)
+                    startTimeFromZero(data)
 
-                    if data.time >= 0:
+                    if data.time >= 0 and not data.time in timestamps:
+                        timestamps.append(data.time)
+
+                        process_data(data, directory)
+
+                        directory.save(data)
+                        
                         filtered_data = removeNoneFromDictionary(asdict(data))
 
                         if not lastSentData or data.time - lastSentData.time >= websocketDelay:
@@ -147,9 +144,9 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
 
 async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
-    global firstTimestamp
+    global timestamps
 
-    firstTimestamp = None
+    timestamps = []
 
     directory = Directory()
     relay = Relay(serial)
