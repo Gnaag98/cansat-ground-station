@@ -9,7 +9,7 @@ import asyncio
 from websockets.server import serve, WebSocketServerProtocol
 
 from src.relay import ReceiveState, Relay
-from src.data import Vector, Data
+from src.data import Vector, Data, DropData
 from src.directory import Directory
 
 commands = {
@@ -77,13 +77,18 @@ def convertOutsideHumidity(data: Data):
         data.humidity_outside = k * data.humidity_outside + m
 
 
-def process_data(data: Data, directory: Directory):
+def process_data(data: Data):
     removeAccelerometerOffset(data)
     removeGyroscopeOffset(data)
 
     convertInsideTemperature(data)
     convertInsideHumidity(data)
     convertOutsideHumidity(data)
+
+
+def process_drop_data(data: DropData):
+    removeAccelerometerOffset(data)
+    removeGyroscopeOffset(data)
 
 
 def removeNoneFromDictionary(dictionary: dict):
@@ -126,9 +131,26 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                     if data.time >= 0 and not data.time in timestamps:
                         timestamps.append(data.time)
 
-                        process_data(data, directory)
+                        process_data(data)
 
-                        directory.save(data)
+                        directory.saveData(data)
+                        
+                        filtered_data = removeNoneFromDictionary(asdict(data))
+
+                        if not lastSentData or data.time - lastSentData.time >= websocketDelay:
+                            await websocket.send(json.dumps(filtered_data))    
+                            lastSentData = data
+            case ReceiveState.DROP:
+                data = relay.try_receive_drop_data()
+                if data:
+                    startTimeFromZero(data)
+
+                    if data.time >= 0 and not data.time in timestamps:
+                        timestamps.append(data.time)
+
+                        process_drop_data(data)
+
+                        directory.saveDropData(data)
                         
                         filtered_data = removeNoneFromDictionary(asdict(data))
 

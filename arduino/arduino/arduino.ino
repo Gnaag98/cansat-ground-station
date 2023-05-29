@@ -156,7 +156,7 @@ void loop() {
     } else if (receivedSize == sizeof(DropData)) {
       DropData data;
       radio.read(&data, sizeof(data));
-      sendText("DropData received");
+      sendDropData(data);
     } else {
       sendText("Error received");
       radio.flush_rx();

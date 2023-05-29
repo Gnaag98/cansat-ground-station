@@ -2,7 +2,7 @@ import csv
 from datetime import datetime
 from pathlib import Path
 
-from .data import Vector, Data
+from .data import Vector, Data, DropData
 
 
 class Directory:
@@ -22,7 +22,7 @@ class Directory:
         self._initialize_number_file(self._directory / 'humidity_outside.csv')
 
 
-    def save(self, data: Data):
+    def saveData(self, data: Data):
         self._save_vector_if_not_none(self._directory / 'acceleration.csv', data.time, data.acceleration)
         self._save_vector_if_not_none(self._directory / 'gyroscope.csv', data.time, data.gyroscope)
         self._save_number_if_not_none(self._directory / 'temperature_outside.csv', data.time, data.temperature_outside)
@@ -32,6 +32,11 @@ class Directory:
         self._save_number_if_not_none(self._directory / 'temperature_inside.csv', data.time, data.temperature_inside)
         self._save_number_if_not_none(self._directory / 'humidity_inside.csv', data.time, data.humidity_inside)
         self._save_number_if_not_none(self._directory / 'humidity_outside.csv', data.time, data.humidity_outside)
+
+
+    def saveDropData(self, data: DropData):
+        self._save_vector_if_not_none(self._directory / 'acceleration.csv', data.time, data.acceleration)
+        self._save_vector_if_not_none(self._directory / 'gyroscope.csv', data.time, data.gyroscope)
 
 
     def _save_vector_if_not_none(self, path: Path, time: int, data: Vector):

@@ -3,7 +3,7 @@ import time
 
 from serial import Serial
 
-from .data import Data, dataSize, deserialize
+from .data import Data, DropData, dataSize, dropDataSize, deserializeData, deserializeDropData
 
 _DATA_TIMEOUT_SECONDS = 0.1
 _TEXT_TIMEOUT_SECONDS = 1
@@ -14,6 +14,7 @@ class ReceiveState(Enum):
     HEADER = auto()
     TYPE = auto()
     DATA = auto()
+    DROP = auto()
     TEXT = auto()
 
 
@@ -72,6 +73,8 @@ class Relay:
         match byte:
             case MessageType.DATA:
                 self._receive_state = ReceiveState.DATA
+            case MessageType.DROP:
+                self._receive_state = ReceiveState.DROP
             case MessageType.TEXT:
                 self._receive_state = ReceiveState.TEXT
                 self._incoming_text = ''
@@ -82,13 +85,27 @@ class Relay:
 
         self._start_time = time.perf_counter()
 
+
     def try_receive_data(self) -> Data | None:
         if self._timeout(_DATA_TIMEOUT_SECONDS):
             return None
 
         if self._serial.in_waiting >= dataSize:
             serialized = self._serial.read(dataSize)
-            data = deserialize(serialized)
+            data = deserializeData(serialized)
+            self._receive_state = ReceiveState.HEADER
+            return data
+        else:
+            return None
+
+
+    def try_receive_drop_data(self) -> DropData | None:
+        if self._timeout(_DATA_TIMEOUT_SECONDS):
+            return None
+
+        if self._serial.in_waiting >= dropDataSize:
+            serialized = self._serial.read(dropDataSize)
+            data = deserializeDropData(serialized)
             self._receive_state = ReceiveState.HEADER
             return data
         else:
