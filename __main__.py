@@ -38,11 +38,11 @@ enabled_sensors = {
 
 websocketDelay = 500
 
-accelerationOffset = Vector(
-    x=0.0890,
-    y=0.4801,
-    z=9.7219
-)
+accelerationCoefficients = {
+    'x': { 'k': 0.9852, 'm': -0.0049 },
+    'y': { 'k': 1.0000, 'm': 0.0300 },
+    'z': { 'k': 1.0363, 'm': -0.0466 }
+}
 gyroscopeOffset = Vector(
     x=-1.4647,
     y=-0.8470,
@@ -80,9 +80,23 @@ def ignore_disabled_sensors(data: Data):
     
 
 
-def removeAccelerometerOffset(data: Data):
+def convertAccelerometer(data: Data):
     if data.acceleration is not None:
-        data.acceleration -= accelerationOffset
+        kX = accelerationCoefficients['x']['k']
+        kY = accelerationCoefficients['y']['k']
+        kZ = accelerationCoefficients['z']['k']
+
+        mX = accelerationCoefficients['x']['m']
+        mY = accelerationCoefficients['y']['m']
+        mZ = accelerationCoefficients['z']['m']
+
+        data.acceleration.x = kX * data.acceleration.x + mX
+        data.acceleration.y = kY * data.acceleration.y + mY
+        data.acceleration.z = kZ * data.acceleration.z + mZ
+
+        data.acceleration.x *= 9.82
+        data.acceleration.y *= 9.82
+        data.acceleration.z *= 9.82
 
 
 def removeGyroscopeOffset(data: Data):
@@ -112,7 +126,7 @@ def convertOutsideHumidity(data: Data):
 
 
 def process_data(data: Data):
-    removeAccelerometerOffset(data)
+    convertAccelerometer(data)
     removeGyroscopeOffset(data)
 
     convertInsideTemperature(data)
@@ -121,7 +135,7 @@ def process_data(data: Data):
 
 
 def process_drop_data(data: DropData):
-    removeAccelerometerOffset(data)
+    convertAccelerometer(data)
     removeGyroscopeOffset(data)
 
 
