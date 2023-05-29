@@ -48,9 +48,9 @@ gyroscopeOffset = Vector(
     y=-0.8470,
     z=-1.2042
 )
-insideTemepratureCoefficients = { 'k': 0.9153, 'm': 2.2295 }
-insideHumidityCoefficients = { 'k': 1.0660, 'm': -2.5015 }
-outsideHumidityCoefficients = { 'k': 0.9231, 'm': 3.3838 }
+insideTemepratureCoefficients = { 'k': 0.9921, 'm': -0.5465 }
+insideHumidityCoefficients = { 'k': 0.9072, 'm': -0.2948 }
+outsideHumidityCoefficients = { 'k': 0.9458, 'm': 2.3840 }
 
 timestamps = []
 
