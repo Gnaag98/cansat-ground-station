@@ -63,7 +63,6 @@ def ignore_disabled_sensors(data: Data):
     if not enabled_sensors['Accelerometer']:
         data.acceleration = None
     if not enabled_sensors['Gyroscope']:
-        print('Acceleration off')
         data.gyroscope = None
     if not enabled_sensors['Waterproof']:
         data.temperature_outside = None
