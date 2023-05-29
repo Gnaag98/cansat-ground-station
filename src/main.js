@@ -250,22 +250,27 @@ function sendCommand(action, value) {
 }
 
 const startStopButton = document.getElementById('startStop');
+const chartButtons = document.getElementsByClassName('chartButton');
+const toggleButtons = document.getElementsByClassName('toggleButton');
+const channelSelect = document.getElementById('channel');
+
 startStopButton.addEventListener('click', event => {
     const state = event.target.innerText;
     if (state === 'Start') {
         addEventListener("beforeunload", warnBeforeExiting);
         event.target.innerText = 'Stop';
         sendCommand('Run', 1);
+        channelSelect.setAttribute('disabled', '');
     } else {
         if (confirm('Do you really want to stop?')) {
             event.target.innerText = 'Start';
             sendCommand('Run', 0);
+            channelSelect.removeAttribute('disabled');
             removeEventListener("beforeunload", warnBeforeExiting);
         }
     }
 });
 
-const chartButtons = document.getElementsByClassName('chartButton');
 for (const button of chartButtons) {
     button.addEventListener('click', event => {
         visible_data = event.target.id;
@@ -278,7 +283,6 @@ function warnBeforeExiting(event) {
     return (event.returnValue = "");
 };
 
-const toggleButtons = document.getElementsByClassName('toggleButton');
 for (const button of toggleButtons) {
     button.addEventListener('click', event => {
         let state;
@@ -292,3 +296,7 @@ for (const button of toggleButtons) {
         sendCommand(event.target.innerText, state);
     });
 }
+
+channelSelect.addEventListener('change', event => {
+    sendCommand('Radio Channel', parseInt(event.target.value));
+});
