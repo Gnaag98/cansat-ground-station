@@ -59,7 +59,7 @@ def startTimeFromZero(data: Data):
     data.time -= timestamps[0]
 
 
-def ignore_disabled_sensors(data: Data):
+def ignore_disabled_sensors_in_data(data: Data):
     if not enabled_sensors['Accelerometer']:
         data.acceleration = None
     if not enabled_sensors['Gyroscope']:
@@ -77,7 +77,13 @@ def ignore_disabled_sensors(data: Data):
         data.humidity_inside = None
     if not enabled_sensors['DHT outside']:
         data.humidity_outside = None
-    
+
+
+def ignore_disabled_sensors_in_drop_data(data: DropData):
+    if not enabled_sensors['Accelerometer']:
+        data.acceleration = None
+    if not enabled_sensors['Gyroscope']:
+        data.gyroscope = None
 
 
 def convertAccelerometer(data: Data):
@@ -187,7 +193,7 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                     startTimeFromZero(data)
 
                     if data.time >= 0:
-                        ignore_disabled_sensors(data)
+                        ignore_disabled_sensors_in_data(data)
                         process_data(data)
 
                         directory.saveData(data)
@@ -204,12 +210,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                             lastSentData = data
             case ReceiveState.DROP:
                 data = relay.try_receive_drop_data()
-                if data:
+                if data and not data.time in timestamps:
+                    timestamps.append(data.time)
                     startTimeFromZero(data)
 
-                    if data.time >= 0 and not data.time in timestamps:
-                        timestamps.append(data.time)
-
+                    if data.time >= 0:
+                        ignore_disabled_sensors_in_drop_data(data)
                         process_drop_data(data)
 
                         directory.saveDropData(data)
