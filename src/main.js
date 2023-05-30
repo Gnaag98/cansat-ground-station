@@ -7,8 +7,21 @@ let measurements = {
     humidity: []
 };
 
+const startStopButton = document.getElementById('startStop');
+const chartButtons = document.getElementsByClassName('chartButton');
+const toggleButtons = document.getElementsByClassName('toggleButton');
+const channelSelect = document.getElementById('channel');
+
+function getVisible() {
+    for (const button of chartButtons) {
+        if (button.dataset.visible == 'true') {
+            return button.id;
+        }
+    }
+}
+
 function getDatasetCategory() {
-    switch (visibleData) {
+    switch (getVisible()) {
         case 'acceleration':
         case 'gyroscope':
             return 'vector';
@@ -22,12 +35,10 @@ function getDatasetCategory() {
     }
 }
 
-let visibleData = 'distance';
-
 const chartCanvas = document.getElementById('chart');
 
 function getLabels() {
-    return measurements[visibleData].map(row => row.time);
+    return measurements[getVisible()].map(row => row.time);
 }
 
 function createDataset(data, label) {
@@ -39,7 +50,7 @@ function createDataset(data, label) {
 }
 
 function getDatasets() {
-    const data = measurements[visibleData];
+    const data = measurements[getVisible()];
     switch (getDatasetCategory()) {
     case 'vector':
         return [
@@ -65,12 +76,12 @@ function getDatasets() {
 }
 
 function getTitle() {
-    associatedButton = document.getElementById(visibleData);
+    associatedButton = document.getElementById(getVisible());
     return associatedButton.innerText;
 }
 
 function getUnit() {
-    switch (visibleData) {
+    switch (getVisible()) {
         case 'acceleration':
             return 'm/s^2';
         case 'gyroscope':
@@ -127,7 +138,11 @@ chart = new Chart(chartCanvas, {
             },
             title: {
                 display: true,
-                text: getTitle()
+                text: getTitle(),
+                font: {
+                    size: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--font-size')
+                }
             }
         }
     }
@@ -151,20 +166,20 @@ function updateChart() {
 
     switch (getDatasetCategory()) {
         case 'vector':
-            chart.data.datasets[0].data = measurements[visibleData].map(row => row.x);
-            chart.data.datasets[1].data = measurements[visibleData].map(row => row.y);
-            chart.data.datasets[2].data = measurements[visibleData].map(row => row.z);
+            chart.data.datasets[0].data = measurements[getVisible()].map(row => row.x);
+            chart.data.datasets[1].data = measurements[getVisible()].map(row => row.y);
+            chart.data.datasets[2].data = measurements[getVisible()].map(row => row.z);
             break;
         case 'location':
-            chart.data.datasets[0].data = measurements[visibleData].map(row => row.outside);
-            chart.data.datasets[1].data = measurements[visibleData].map(row => row.inside);
+            chart.data.datasets[0].data = measurements[getVisible()].map(row => row.outside);
+            chart.data.datasets[1].data = measurements[getVisible()].map(row => row.inside);
             break;
         case 'air':
-            chart.data.datasets[0].data = measurements[visibleData].map(row => row.air_quality);
-            chart.data.datasets[1].data = measurements[visibleData].map(row => row.sound);
+            chart.data.datasets[0].data = measurements[getVisible()].map(row => row.air_quality);
+            chart.data.datasets[1].data = measurements[getVisible()].map(row => row.sound);
             break;
         default:
-            chart.data.datasets[0].data = measurements[visibleData].map(row => row.data);
+            chart.data.datasets[0].data = measurements[getVisible()].map(row => row.data);
             break;
     }
     
@@ -247,11 +262,6 @@ function sendCommand(action, value) {
     socket.send(`${action}:${value}`);
 }
 
-const startStopButton = document.getElementById('startStop');
-const chartButtons = document.getElementsByClassName('chartButton');
-const toggleButtons = document.getElementsByClassName('toggleButton');
-const channelSelect = document.getElementById('channel');
-
 startStopButton.addEventListener('click', event => {
     const state = event.target.innerText;
     if (state === 'Start') {
@@ -271,7 +281,10 @@ startStopButton.addEventListener('click', event => {
 
 for (const button of chartButtons) {
     button.addEventListener('click', event => {
-        visibleData = event.target.id;
+        for (const button of chartButtons) {
+            button.dataset.visible = false;
+        }
+        event.target.dataset.visible = true;
         resetChart();
     });
 }

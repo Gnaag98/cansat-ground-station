@@ -13,95 +13,103 @@
     <script src="src/main.js" defer></script>
 </head>
 <body>
-    <div>
-        <button id="acceleration" class="chartButton">
-            Acceleration
-        </button>
-        <button id="gyroscope" class="chartButton">
-            Gyroscope
-        </button>
-        <button id="distance" class="chartButton">
-            Distance
-        </button>
-        <button id="air" class="chartButton">
-            Air
-        </button>
-        <button id="temperature" class="chartButton">
-            Temperature
-        </button>
-        <button id="humidity" class="chartButton">
-            Humidity
-        </button>
-    </div>
+    <main>
+        <section>
+            <div class="tabs">
+                <button id="acceleration" class="chartButton" data-visible="false">
+                    Acceleration
+                </button>
+                <button id="gyroscope" class="chartButton" data-visible="false">
+                    Gyroscope
+                </button>
+                <button id="distance" class="chartButton" data-visible="true">
+                    Distance
+                </button>
+                <button id="air" class="chartButton" data-visible="false">
+                    Air
+                </button>
+                <button id="temperature" class="chartButton" data-visible="false">
+                    Temperature
+                </button>
+                <button id="humidity" class="chartButton" data-visible="false">
+                    Humidity
+                </button>
+            </div>
 
-    <div>
-        <canvas id="chart"></canvas>
-    </div>
-    
-    <button id="startStop">Start</button>
+            <div class="chart">
+                <canvas id="chart"></canvas>
+            </div>
+        </section>
+        <section class="controls">
+            <div class="toggleButtons">
+                <button class="toggleButton" data-sensor="Accelerometer" data-enabled="true">
+                    Accelerometer
+                </button>
+                <button class="toggleButton" data-sensor="Gyroscope" data-enabled="true">
+                    Gyroscope
+                </button>
+                <button class="toggleButton" data-sensor="Ultrasonic" data-enabled="true">
+                    Ultrasonic
+                </button>
+                <button class="toggleButton" data-sensor="Air Quality" data-enabled="true">
+                    Air Quality
+                </button>
+                <button class="toggleButton" data-sensor="Sound" data-enabled="true">
+                    Sound
+                </button>
+                <button class="toggleButton" data-sensor="Waterproof" data-enabled="true">
+                    Waterproof
+                </button>
+                <button class="toggleButton" data-sensor="DHT outside" data-enabled="true">
+                    DHT outside
+                </button>
+                <button class="toggleButton" data-sensor="DHT inside" data-enabled="true">
+                    DHT inside
+                </button>
+            </div>
 
-    <div class="sensorToggles">
-        <button class="toggleButton" data-sensor="Accelerometer" data-enabled="true">
-            Accelerometer
-        </button>
-        <button class="toggleButton" data-sensor="Gyroscope" data-enabled="true">
-            Gyroscope
-        </button>
-        <button class="toggleButton" data-sensor="Ultrasonic" data-enabled="true">
-            Ultrasonic
-        </button>
-        <button class="toggleButton" data-sensor="Air Quality" data-enabled="true">
-            Air Quality
-        </button>
-        <button class="toggleButton" data-sensor="Sound" data-enabled="true">
-            Sound
-        </button>
-        <button class="toggleButton" data-sensor="Waterproof" data-enabled="true">
-            Waterproof
-        </button>
-        <button class="toggleButton" data-sensor="DHT outside" data-enabled="true">
-            DHT outside
-        </button>
-        <button class="toggleButton" data-sensor="DHT inside" data-enabled="true">
-            DHT inside
-        </button>
-    </div>
-    <div class="channel">
-        <p>Channel:</p>
-        <select name="channel" id="channel">
-            <option value="31">31</option>
-            <option value="32">32</option>
-            <option value="33">33</option>
-            <option value="34">34</option>
-            <option value="35">35</option>
-            <option value="36">36</option>
-            <option value="37">37</option>
-            <option value="38">38</option>
-            <option value="39">39</option>
-            <option value="40">40</option>
-            <option disabled></option>
-            <option value="71">71</option>
-            <option value="72">72</option>
-            <option value="73">73</option>
-            <option value="74">74</option>
-            <option value="75">75</option>
-            <option value="76">76</option>
-            <option value="77">77</option>
-            <option value="78">78</option>
-            <option value="79">79</option>
-            <option value="80">80</option>
-            <option disabled></option>
-            <option value="111" selected="selected">111</option>
-            <option value="112">112</option>
-            <option value="113">113</option>
-            <option value="114">114</option>
-            <option value="115">115</option>
-            <option value="116">116</option>
-            <option value="117">117</option>
-            <option value="118">118</option>
-            <option value="119">119</option>
-            <option value="120">120</option>
-        </select>
-    </div>
+            <button id="startStop" class="startStop">Start</button>
+        </section>
+
+        <section class="channel">
+            <div>
+                <p>Channel:</p>
+                <select name="channel" id="channel">
+                    <option value="31">31</option>
+                    <option value="32">32</option>
+                    <option value="33">33</option>
+                    <option value="34">34</option>
+                    <option value="35">35</option>
+                    <option value="36">36</option>
+                    <option value="37">37</option>
+                    <option value="38">38</option>
+                    <option value="39">39</option>
+                    <option value="40">40</option>
+                    <option disabled></option>
+                    <option value="71">71</option>
+                    <option value="72">72</option>
+                    <option value="73">73</option>
+                    <option value="74">74</option>
+                    <option value="75">75</option>
+                    <option value="76">76</option>
+                    <option value="77">77</option>
+                    <option value="78">78</option>
+                    <option value="79">79</option>
+                    <option value="80">80</option>
+                    <option disabled></option>
+                    <option value="111" selected="selected">111</option>
+                    <option value="112">112</option>
+                    <option value="113">113</option>
+                    <option value="114">114</option>
+                    <option value="115">115</option>
+                    <option value="116">116</option>
+                    <option value="117">117</option>
+                    <option value="118">118</option>
+                    <option value="119">119</option>
+                    <option value="120">120</option>
+                </select>
+            </div>
+        </section>
+    </main>
 </body>
 </html>
