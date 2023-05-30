@@ -59,6 +59,88 @@ latest_received_timestamp: float = None
 latest_sent_timestamp: float = None
 
 
+def detect_strange_acceleration(acceleration: Vector) -> bool:
+    max_value = 2 * 9.82
+    if acceleration is None:
+        return False
+    else:
+        return (
+            abs(acceleration.x) > max_value
+            or abs(acceleration.y) > max_value
+            or abs(acceleration.z) > max_value
+        )
+
+
+def detect_strange_gyroscope(gyroscope: Vector) -> bool:
+    max_value = 250
+    if gyroscope is None:
+        return False
+    else:
+        return (
+            abs(gyroscope.x) > max_value
+            or abs(gyroscope.y) > max_value
+            or abs(gyroscope.z) > max_value
+        )
+
+
+def detect_strange_distance(distance: int | float) -> bool:
+    max_value = 300
+    if distance is None:
+        return False
+    else:
+        return (
+            distance < 0
+            or distance > max_value
+        )
+
+
+def detect_strange_analog(analog_data: int | float) -> bool:
+    max_value = 1023
+    if analog_data is None:
+        return False
+    else:
+        return (
+            analog_data < 0
+            or analog_data > max_value
+        )
+
+
+def detect_strange_temperature(temperature: int | float) -> bool:
+    max_value = 100
+    if temperature is None:
+        return False
+    else:
+        return (
+            temperature < 0
+            or temperature > max_value
+        )
+
+
+def detect_strange_humidity(humidity: int | float) -> bool:
+    max_value = 100
+    if humidity is None:
+        return False
+    else:
+        return (
+            humidity < 0
+            or humidity > max_value
+        )
+
+
+def detect_strange_data(data: Data) -> bool:
+    return (
+        detect_strange_acceleration(data.acceleration)
+        or detect_strange_gyroscope(data.gyroscope)
+        or detect_strange_distance(data.distance)
+        or detect_strange_analog(data.air_quality)
+        or detect_strange_analog(data.sound)
+        or detect_strange_temperature(data.temperature_outside)
+        or detect_strange_temperature(data.temperature_inside)
+        or detect_strange_humidity(data.humidity_outside)
+        or detect_strange_humidity(data.humidity_inside)
+    )
+
+
 def update_received_time(timestamp: float):
     global received_timestamps
     global first_received_timestamp
@@ -228,11 +310,11 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
 
                 if received_time < 0:
                     # Abort if the timestamp is negative.
-                    print('[ERROR]: Received timestamp is negative.')
+                    print('[ERROR] Received timestamp is negative.')
                     continue
                 if received_time in received_timestamps:
                     # Abort if the data has already been received.
-                    print('[ERROR]: Data with the same timestamp has already been received.')
+                    print('[ERROR] Data with the same timestamp has already been received.')
                     continue
 
                 if latest_received_timestamp:
@@ -241,14 +323,14 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                         # Abort if the data is older than the oldest.
                         # This might mess up the first few values if they are
                         # sent out of order, but that is an okay drawback.
-                        print('[ERROR]: Received data is older than the oldest data.')
+                        print('[ERROR] Received data is older than the oldest data.')
                         continue
 
                     time_since_latest_receive = received_time - latest_received_timestamp
                     if time_since_latest_receive > 1000 * 60 * 10:
                         # Abort the data is more than 10 minutes older than the
                         # newest data.
-                        print('[ERROR]: Received data is more than 10 minutes older than the newest data.')
+                        print('[ERROR] Received data is more than 10 minutes older than the newest data.')
                         continue
 
                 update_received_time(received_time)
@@ -270,9 +352,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                         # Send if enough time has passed since the last data was sent.
                         or (received_time - latest_sent_timestamp >= websocketDelay)
                     ):
-                    filtered_data = removeNoneFromDictionary(asdict(data))
-                    await websocket.send(json.dumps(filtered_data))
-                    update_send_time(received_time)
+                    if detect_strange_data(data):
+                        print('[WARNING] Strange date detected.')
+                    else:
+                        filtered_data = removeNoneFromDictionary(asdict(data))
+                        await websocket.send(json.dumps(filtered_data))
+                        update_send_time(received_time)
 
             case ReceiveState.DROP:
                 data = relay.try_receive_drop_data()
