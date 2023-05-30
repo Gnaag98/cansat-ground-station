@@ -2,3 +2,35 @@ div:has(canvas) {
     position: relative; 
     height: 300px;
 }
+
+.toggleButton::after {
+    display: inline-block;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    font: var(--fa-font-solid);
+    content: "\f111";
+    
+    color: red;
+}
+
+.toggleButton[data-enabled=true]::after {
+    color: green;
+}
+
+.sensorToggles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.channel {
+    display: flex;
+    align-items: center;
+}
+
+.channel > p {
+    margin-inline-end: 0.5em;
+}
+
+.channel > select {
+    height: 100%;
+}

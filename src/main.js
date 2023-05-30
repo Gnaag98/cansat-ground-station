@@ -284,14 +284,15 @@ function warnBeforeExiting(event) {
 for (const button of toggleButtons) {
     button.addEventListener('click', event => {
         let state;
-        if (button.classList.contains('off')) {
-            state = 1;
-            button.classList.remove('off');
-        } else {
+        if (event.target.dataset.enabled == 'true') {
+            event.target.dataset.enabled = false;
             state = 0;
-            button.classList.add('off');
+        } else {
+            event.target.dataset.enabled = true;
+            state = 1;
         }
-        sendCommand(event.target.innerText, state);
+        
+        sendCommand(event.target.dataset.sensor, state);
     });
 }
 
