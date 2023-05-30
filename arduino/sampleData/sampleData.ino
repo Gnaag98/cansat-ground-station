@@ -23,7 +23,7 @@ void setup() {
 
 void loop() {
   const auto now = millis();
-  if (now - lastTime > 200) {
+  if (now - lastTime > 500) {
     auto data = Data{
       .acceleration = Vector{ random(1000), random(2000), random(3000) },
       .gyroscope = Vector{ random(4000), random(5000), random(6000) },

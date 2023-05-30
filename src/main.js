@@ -2,22 +2,23 @@ let measurements = {
     acceleration: [],
     gyroscope: [],
     distance: [],
-    air_quality: [],
-    sound: [],
+    air: [],
     temperature: [],
     humidity: []
 };
 
-function getDatasetCount() {
+function getDatasetCategory() {
     switch (visibleData) {
         case 'acceleration':
         case 'gyroscope':
-            return 3;
+            return 'vector';
         case 'temperature':
         case 'humidity':
-            return 2;
+            return 'location';
+        case 'air':
+            return 'air';
         default:
-            return 1;
+            return 'default';
     }
 }
 
@@ -39,21 +40,26 @@ function createDataset(data, label) {
 
 function getDatasets() {
     const data = measurements[visibleData];
-    switch (getDatasetCount()) {
-    case 1:
-        return [
-            createDataset(data.map(row => row.data))
-        ];
-    case 2:
-        return [
-            createDataset(data.map(row => row.outside), 'Outside'),
-            createDataset(data.map(row => row.inside), 'Inside')
-        ];
-    case 3:
+    switch (getDatasetCategory()) {
+    case 'vector':
         return [
             createDataset(data.map(row => row.x), 'x'),
             createDataset(data.map(row => row.y), 'y'),
             createDataset(data.map(row => row.z), 'z'),
+        ];
+    case 'location':
+        return [
+            createDataset(data.map(row => row.outside), 'Outside'),
+            createDataset(data.map(row => row.inside), 'Inside')
+        ];
+    case 'air':
+        return [
+            createDataset(data.map(row => row.air_quality), 'Air Quality'),
+            createDataset(data.map(row => row.sound), 'Sound Level')
+        ];
+    default:
+        return [
+            createDataset(data.map(row => row.data))
         ];
     }
 }
@@ -132,10 +138,10 @@ function resetChart() {
     chart.data.datasets = getDatasets();
     chart.options.plugins.title.text = getTitle();
 
-    const datasetCount = getDatasetCount();
+    const datasetCategory = getDatasetCategory();
 
-    chart.options.plugins.legend.display = datasetCount != 1;
-    chart.options.pointStyle = datasetCount == 2;
+    chart.options.plugins.legend.display = datasetCategory == 'vector' || datasetCategory == 'air';
+    chart.options.pointStyle = datasetCategory == 'location';
 
     chart.update();
 }
@@ -143,19 +149,23 @@ function resetChart() {
 function updateChart() {
     chart.data.labels = getLabels();
 
-    switch (getDatasetCount()) {
-    case 1:
-        chart.data.datasets[0].data = measurements[visibleData].map(row => row.data);
-        break;
-    case 2:
-        chart.data.datasets[0].data = measurements[visibleData].map(row => row.outside);
-        chart.data.datasets[1].data = measurements[visibleData].map(row => row.inside);
-        break;
-    case 3:
-        chart.data.datasets[0].data = measurements[visibleData].map(row => row.x);
-        chart.data.datasets[1].data = measurements[visibleData].map(row => row.y);
-        chart.data.datasets[2].data = measurements[visibleData].map(row => row.z);
-        break;
+    switch (getDatasetCategory()) {
+        case 'vector':
+            chart.data.datasets[0].data = measurements[visibleData].map(row => row.x);
+            chart.data.datasets[1].data = measurements[visibleData].map(row => row.y);
+            chart.data.datasets[2].data = measurements[visibleData].map(row => row.z);
+            break;
+        case 'location':
+            chart.data.datasets[0].data = measurements[visibleData].map(row => row.outside);
+            chart.data.datasets[1].data = measurements[visibleData].map(row => row.inside);
+            break;
+        case 'air':
+            chart.data.datasets[0].data = measurements[visibleData].map(row => row.air_quality);
+            chart.data.datasets[1].data = measurements[visibleData].map(row => row.sound);
+            break;
+        default:
+            chart.data.datasets[0].data = measurements[visibleData].map(row => row.data);
+            break;
     }
     
     chart.update();
@@ -187,19 +197,15 @@ function storeData(data) {
         z: gyroscope?.['z'] ?? null
     });
 
-    measurements.sound.push({
-        time: time,
-        data: sound ?? null
-    });
-
     measurements.distance.push({
         time: time,
         data: distance ?? null
     });
 
-    measurements.air_quality.push({
+    measurements.air.push({
         time: time,
-        data: air_quality ?? null
+        air_quality: air_quality ?? null,
+        sound: sound ?? null
     });
 
     measurements.temperature.push({
