@@ -52,11 +52,40 @@ insideTemepratureCoefficients = { 'k': 0.9921, 'm': -0.5465 }
 insideHumidityCoefficients = { 'k': 0.9072, 'm': -0.2948 }
 outsideHumidityCoefficients = { 'k': 0.9458, 'm': 2.3840 }
 
-timestamps = []
+received_timestamps = []
+first_received_timestamp: float = None
+latest_received_timestamp: float = None
+
+latest_sent_timestamp: float = None
+
+
+def update_received_time(timestamp: float):
+    global received_timestamps
+    global first_received_timestamp
+    global latest_received_timestamp
+
+    received_timestamps.append(timestamp)
+
+    if first_received_timestamp is None:
+        first_received_timestamp = timestamp
+
+    if latest_received_timestamp is None:
+        latest_received_timestamp = timestamp
+    else:
+        latest_received_timestamp = max(timestamp, latest_received_timestamp)
+
+
+def update_send_time(timestamp: float):
+    global latest_sent_timestamp
+
+    if latest_sent_timestamp is None:
+        latest_sent_timestamp = timestamp
+    else:
+        latest_sent_timestamp = max(timestamp, latest_sent_timestamp)
 
 
 def startTimeFromZero(data: Data):
-    data.time -= timestamps[0]
+    data.time -= received_timestamps[0]
 
 
 def ignore_disabled_sensors_in_data(data: Data):
@@ -176,42 +205,79 @@ async def websocket_loop(websocket: WebSocketServerProtocol, serial: Serial):
 
 
 async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay: Relay, directory: Directory):
-    global timestamps
-
-    lastSentData: Data = None
+    global received_timestamps
 
     while websocket.open:
+        await asyncio.sleep(0)
+
         match relay.receive_state:
             case ReceiveState.HEADER:
                 relay.try_receive_header()
+
             case ReceiveState.TYPE:
                 relay.try_receive_type()
+
             case ReceiveState.DATA:
                 data = relay.try_receive_data()
-                if data and not data.time in timestamps:
-                    timestamps.append(data.time)
-                    startTimeFromZero(data)
 
-                    if data.time >= 0:
-                        ignore_disabled_sensors_in_data(data)
-                        process_data(data)
+                if not data:
+                    # Abort if there is no data.
+                    continue
 
-                        directory.saveData(data)
-                        
-                        filtered_data = removeNoneFromDictionary(asdict(data))
+                received_time = data.time
 
-                        if (not lastSentData
-                            or data.temperature_inside
-                            or data.temperature_outside
-                            or data.humidity_inside
-                            or data.humidity_outside
-                            or data.time - lastSentData.time >= websocketDelay):
-                            await websocket.send(json.dumps(filtered_data))    
-                            lastSentData = data
+                if received_time < 0:
+                    # Abort if the timestamp is negative.
+                    print('[ERROR]: Received timestamp is negative.')
+                    continue
+                if received_time in received_timestamps:
+                    # Abort if the data has already been received.
+                    print('[ERROR]: Data with the same timestamp has already been received.')
+                    continue
+
+                if latest_received_timestamp:
+                    time_since_first_receive = received_time - first_received_timestamp
+                    if time_since_first_receive < 0:
+                        # Abort if the data is older than the oldest.
+                        # This might mess up the first few values if they are
+                        # sent out of order, but that is an okay drawback.
+                        print('[ERROR]: Received data is older than the oldest data.')
+                        continue
+
+                    time_since_latest_receive = received_time - latest_received_timestamp
+                    if time_since_latest_receive > 1000 * 60 * 10:
+                        # Abort the data is more than 10 minutes older than the
+                        # newest data.
+                        print('[ERROR]: Received data is more than 10 minutes older than the newest data.')
+                        continue
+
+                update_received_time(received_time)
+
+                startTimeFromZero(data)
+                ignore_disabled_sensors_in_data(data)
+                process_data(data)
+
+                directory.saveData(data)
+
+                if (
+                        # Send if this is the first time sending.
+                        (not latest_sent_timestamp)
+                        # Send if the data contains temperature or humidity data.
+                        or (data.temperature_inside
+                        or data.temperature_outside
+                        or data.humidity_inside
+                        or data.humidity_outside)
+                        # Send if enough time has passed since the last data was sent.
+                        or (received_time - latest_sent_timestamp >= websocketDelay)
+                    ):
+                    filtered_data = removeNoneFromDictionary(asdict(data))
+                    await websocket.send(json.dumps(filtered_data))
+                    update_send_time(received_time)
+
             case ReceiveState.DROP:
                 data = relay.try_receive_drop_data()
-                if data and not data.time in timestamps:
-                    timestamps.append(data.time)
+                if data and not data.time in received_timestamps:
+                    received_timestamps.append(data.time)
                     startTimeFromZero(data)
 
                     if data.time >= 0:
@@ -230,13 +296,12 @@ async def serial_loop(websocket: WebSocketServerProtocol, serial: Serial, relay:
                 text = relay.try_receive_text()
                 if text:
                     print(text)
-        await asyncio.sleep(0)
 
 
 async def on_websocket_connect(websocket: WebSocketServerProtocol, serial: Serial):
-    global timestamps
+    global received_timestamps
 
-    timestamps = []
+    received_timestamps = []
 
     directory = Directory()
     relay = Relay(serial)
