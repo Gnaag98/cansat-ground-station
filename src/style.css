@@ -36,7 +36,7 @@ button:hover {
     background-color: rgb(250, 250, 250);
 }
 
-select:hover {
+select:enabled:hover {
     cursor: pointer;
 }
 
