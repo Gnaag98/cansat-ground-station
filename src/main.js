@@ -140,7 +140,7 @@ function resetChart() {
 
     const datasetCategory = getDatasetCategory();
 
-    chart.options.plugins.legend.display = datasetCategory == 'vector' || datasetCategory == 'air';
+    chart.options.plugins.legend.display = datasetCategory != 'default';
     chart.options.pointStyle = datasetCategory == 'location';
 
     chart.update();
