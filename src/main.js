@@ -90,7 +90,7 @@ chart = new Chart(chartCanvas, {
         animation: true,
         pointStyle: false,
         maintainAspectRatio: false,
-        spanGaps: true,
+        spanGaps: false,
         scales: {
             x: {
                 ticks: {
@@ -132,15 +132,10 @@ function resetChart() {
     chart.data.datasets = getDatasets();
     chart.options.plugins.title.text = getTitle();
 
-    switch (getDatasetCount()) {
-    case 1:
-        chart.options.plugins.legend.display = false;
-        break;
-    case 2:
-    case 3:
-        chart.options.plugins.legend.display = true;
-        break;
-    }
+    const datasetCount = getDatasetCount();
+
+    chart.options.plugins.legend.display = datasetCount != 1;
+    chart.options.pointStyle = datasetCount == 2;
 
     chart.update();
 }
